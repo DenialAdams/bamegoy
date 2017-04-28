@@ -1,3 +1,4 @@
+// TODO: use bitflags?
 struct Flag {
   zero: bool,
   subtract: bool,
@@ -16,7 +17,8 @@ struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
-  flags: Flag
+  flags: Flag,
+  cycles: u64
 }
 
 impl CPU {
@@ -37,7 +39,8 @@ impl CPU {
         subtract: false,
         half_carry: false,
         carry: false
-      }
+      },
+      cycles: 0
     }
   }
 
@@ -50,6 +53,7 @@ impl CPU {
     match opcode {
       0x00 => {
         // NOP
+        self.cycles += 4;
       },
       _ => unimplemented!()
     }

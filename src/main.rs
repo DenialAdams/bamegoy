@@ -9,6 +9,8 @@ use glium::DisplayBuild;
 use glium::Surface;
 
 mod cpu;
+mod memory;
+mod rom;
 
 fn main() {
     let display = glium::glutin::WindowBuilder::new()
