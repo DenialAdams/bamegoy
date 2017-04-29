@@ -50,7 +50,7 @@ impl CPU {
   pub fn step(&mut self, memory: &mut Memory) {
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
-    println!("{:02x}", opcode);
+    println!("{:02x} at address {:x}", opcode, self.program_counter);
     // Increment
     self.program_counter += 1;
     // Execute
