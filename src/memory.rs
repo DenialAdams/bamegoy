@@ -1,4 +1,5 @@
 use std;
+use util::LoHi;
 
 /* 
 Helpful reference!
@@ -38,12 +39,21 @@ impl Memory {
 
   // @Performance Read and write can use unsafe operations to index
 
-  pub fn write(&mut self, address: u16, value: u8) {
+  pub fn write_byte(&mut self, address: u16, value: u8) {
     self.memory[translate(address)] = value;
   }
 
-  pub fn read(&self, address: u16) -> u8 {
+  pub fn write_short(&mut self, address: u16, value: u16) {
+    self.memory[translate(address)] = value.lo();
+    self.memory[translate(address + 1)] = value.hi();
+  }
+
+  pub fn read_byte(&self, address: u16) -> u8 {
     self.memory[translate(address)]
+  }
+
+  pub fn read_short(&self, address: u16) -> u16 {
+    (self.memory[translate(address + 1)] as u16) << 8 | self.memory[translate(address)] as u16
   }
 }
 
