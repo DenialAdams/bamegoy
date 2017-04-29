@@ -1,3 +1,8 @@
+use memory::Memory;
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
 enum Cart {
   RomOnly = 0x00,
   RomMBC1,
@@ -25,4 +30,11 @@ enum Cart {
   BandaiTAMA5 = 0xFD,
   HudsonHuC3 = 0xFE,
   HudonHuC1 = 0xFF
+}
+
+pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), io::Error> {
+  let mut file = File::open(path)?;
+  let mut buf = &mut memory.memory[0..0x8000];
+  file.read_exact(buf)?;
+  return Ok(())
 }

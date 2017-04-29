@@ -20,29 +20,39 @@ struct Memory {
   sprites: [u8; 160],
   // 0xFF00 - 0xFF7F
   mmap: [u8; 128],
-  // 0xFF80 - 0xFF
+  // 0xFF80 - 0xFFFF
   zero_page: [u8; 128]
 }
 */
 
-struct Memory {
-  memory: Box<[u8; 65536]>
+pub struct Memory {
+  pub memory: Box<[u8; 65536]>
 }
 
 impl Memory {
-  fn new() -> Memory {
+  pub fn new() -> Memory {
     Memory {
       memory: Box::new(unsafe { std::mem::uninitialized() })
     }
   }
+
+  // @Performance Read and write can use unsafe operations to index
+
+  pub fn write(&mut self, address: u16, value: u8) {
+    self.memory[translate(address)] = value;
+  }
+
+  pub fn read(&self, address: u16) -> u8 {
+    self.memory[translate(address)]
+  }
 }
 
 // Translates from virtual gameboy addresses to our array indexing
-fn translate(address: u16) -> u16 {
+fn translate(address: u16) -> usize {
   // If it's in the working memory "shadow" just index the working memory
   if address >= 0xE000 && address <= 0xFDFF {
-    address - 0x2000
+    address as usize - 0x2000
   } else {
-    address
+    address as usize
   }
 }
