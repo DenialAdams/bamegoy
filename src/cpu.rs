@@ -50,7 +50,7 @@ impl CPU {
   pub fn step(&mut self, memory: &mut Memory) {
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
-    println!("{:02x} at address {:x}", opcode, self.program_counter);
+    //println!("{:02x} at address {:04x}", opcode, self.program_counter);
     // Increment
     self.program_counter += 1;
     // Execute
@@ -59,11 +59,39 @@ impl CPU {
         // NOP
         self.cycles += 4;
       },
+      0x05 => {
+        // DEC b
+        self.b = self.b.wrapping_sub(1);
+        self.flags.zero = self.b == 0;
+        self.flags.subtract = true;
+        self.flags.half_carry = self.b & 0x10 == 0x10; // @Correctness?
+        self.cycles + 4;
+      },
+      0x06 => {
+        // LD n into B
+        let value = self.read_byte_parameter(memory);
+        self.b = value;
+        self.cycles += 8;
+      },
+      0x0d => {
+        // DEC c
+        self.c = self.c.wrapping_sub(1);
+        self.flags.zero = self.c == 0;
+        self.flags.subtract = true;
+        self.flags.half_carry = self.c & 0x10 == 0x10; // @Correctness?
+        self.cycles += 4;
+      }
       0x0e => {
         // LD n into C
         let value = self.read_byte_parameter(memory);
         self.c = value;
-        self.program_counter += 1;
+        self.cycles += 8;
+      },
+      0x20 => {
+        let rel_target = self.read_signed_byte_parameter(memory);
+        if !self.flags.zero {
+          self.relative_jump(rel_target);
+        }
         self.cycles += 8;
       },
       0x21 => {
@@ -75,12 +103,17 @@ impl CPU {
       },
       0x32 => {
         // LDD A into HL
-        // @Correctness - should this be a wrapping subtract?
         let result = (self.a as u16).wrapping_sub(1);
         self.h = result.hi();
         self.l = result.lo();
         self.cycles += 8;
-      }
+      },
+      0x3e => {
+        // LD # into A
+        let result = self.read_byte_parameter(memory);
+        self.a = result;
+        self.cycles += 8;
+      },
       0x4d => {
         // LD L into C
         self.c = self.l;
@@ -102,20 +135,57 @@ impl CPU {
         self.program_counter = target;
         self.cycles += 12; // @Correctness; conflicting information on this
       },
+      0xe0 => {
+        // LDH n,A
+        let offset = self.read_byte_parameter(memory);
+        memory.write_byte(0xFF00 + offset as u16, self.a);
+        self.cycles += 12;
+      },
+      0xf0 => {
+        // LDH A,n
+        let offset = self.read_byte_parameter(memory);
+        self.a = memory.read_byte(0xFF00 + offset as u16);
+        self.cycles += 12;
+      },
       0xf1 => {
         // Pop into AF
         let short = self.pop_short(memory);
         self.a = short.hi();
         self.f = short.lo();
         self.cycles += 12
-      }
+      },
+      0xf3 => {
+        // Disable interrupts
+        // TODO
+        self.cycles += 4;
+      },
+      0xfe => {
+        // Compare A with #
+        let value = self.read_byte_parameter(memory);
+        self.flags.zero = self.a == value;
+        self.flags.subtract = true;
+        self.flags.half_carry = (self.a.wrapping_sub(value)) & 0x10 == 0x10; // @Correctness?
+        self.flags.carry = self.a > value;
+        self.cycles += 8
+      },
       0xff => {
         // RST 38
         self.write_pc_to_stack(memory);
         self.program_counter = 0x0038;
         self.cycles += 32;
+      },
+      _ => {
+        println!("{:02x} at address {:04x}", opcode, self.program_counter);
+        unimplemented!()
       }
-      _ => unimplemented!()
+    }
+  }
+
+  fn relative_jump(&mut self, rel_target: i8) {
+    if rel_target < 0 {
+      self.program_counter -= -rel_target as u16;
+    } else {
+      self.program_counter += rel_target as u16;
     }
   }
 
@@ -142,6 +212,12 @@ impl CPU {
 
   fn read_byte_parameter(&mut self, memory: &Memory) -> u8 {
     let value = memory.read_byte(self.program_counter);
+    self.program_counter += 1;
+    value
+  }
+
+  fn read_signed_byte_parameter(&mut self, memory: &Memory) -> i8 {
+    let value = memory.read_signed_byte(self.program_counter);
     self.program_counter += 1;
     value
   }

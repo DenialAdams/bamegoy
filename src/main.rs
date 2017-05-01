@@ -37,7 +37,9 @@ fn main() {
             }
         }
 
-        cpu.step(&mut memory);
+        for _ in 0..10000 {
+            cpu.step(&mut memory);
+        }
 
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 0.0);

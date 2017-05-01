@@ -54,6 +54,10 @@ impl Memory {
   pub fn read_byte(&self, address: u16) -> u8 {
     self.memory[translate(address)]
   }
+  
+  pub fn read_signed_byte(&self, address: u16) -> i8 {
+    self.memory[translate(address)] as i8
+  }
 
   pub fn read_short(&self, address: u16) -> u16 {
     // This is basically un-needed because rust does this in debug mode already
