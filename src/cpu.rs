@@ -59,16 +59,36 @@ impl CPU {
         // NOP
         self.cycles += 4;
       },
+      0x0e => {
+        // LD n into C
+        let value = self.read_byte_parameter(memory);
+        self.c = value;
+        self.program_counter += 1;
+        self.cycles += 8;
+      },
+      0x21 => {
+        // LD nn into HL
+        let value = self.read_short_parameter(memory);
+        self.h = value.hi();
+        self.l = value.lo();
+        self.cycles += 12;
+      },
+      0x32 => {
+        // LDD A into HL
+        // @Correctness - should this be a wrapping subtract?
+        let result = (self.a as u16).wrapping_sub(1);
+        self.h = result.hi();
+        self.l = result.lo();
+        self.cycles += 8;
+      }
       0x4d => {
         // LD L into C
         self.c = self.l;
         self.cycles += 4;
       },
       0xaf => {
-        // XOR A with n
-        let operand = memory.read_byte(self.program_counter);
-        self.program_counter += 1;
-        self.a ^= operand;
+        // XOR A with A
+        self.a ^= self.a;
         self.flags.zero = self.a == 0;
         self.flags.subtract = false;
         self.flags.half_carry = false;
@@ -78,7 +98,7 @@ impl CPU {
       0xc3 => {
         // JMP nn
         let target = memory.read_short(self.program_counter);
-        println!("{:04x}", target);
+        println!("jumping to {:04x}", target);
         self.program_counter = target;
         self.cycles += 12; // @Correctness; conflicting information on this
       },
@@ -112,6 +132,18 @@ impl CPU {
     x = (memory.read_byte(self.stack_pointer) as u16) << 8 | x;
     self.increment_sp();
     x
+  }
+
+  fn read_short_parameter(&mut self, memory: &Memory) -> u16 {
+    let value = memory.read_short(self.program_counter);
+    self.program_counter += 2;
+    value
+  }
+
+  fn read_byte_parameter(&mut self, memory: &Memory) -> u8 {
+    let value = memory.read_byte(self.program_counter);
+    self.program_counter += 1;
+    value
   }
 
   fn decrement_sp(&mut self) {

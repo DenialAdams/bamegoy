@@ -8,7 +8,7 @@ glutin = "0.7.4"
 glium = "0.16.0"
 log = "0.3.7"
 log-panics = "1.1.0"
-cpal = "0.4.4"
+cpal = "0.4.5"
 
 [profile.release]
 lto = true
