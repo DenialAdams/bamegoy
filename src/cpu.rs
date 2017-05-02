@@ -20,8 +20,7 @@ pub struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
-  flags: Flag,
-  cycles: u64
+  flags: Flag
 }
 
 impl CPU {
@@ -42,22 +41,22 @@ impl CPU {
         subtract: false,
         half_carry: false,
         carry: false
-      },
-      cycles: 0
+      }
     }
   }
 
-  pub fn step(&mut self, memory: &mut Memory) {
+  pub fn step(&mut self, memory: &mut Memory) -> u8 {
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
     //println!("{:02x} at address {:04x}", opcode, self.program_counter);
     // Increment
     self.program_counter += 1;
     // Execute
+    let cycles;
     match opcode {
       0x00 => {
         // NOP
-        self.cycles += 4;
+        cycles = 4;
       },
       0x05 => {
         // DEC b
@@ -65,13 +64,13 @@ impl CPU {
         self.flags.zero = self.b == 0;
         self.flags.subtract = true;
         self.flags.half_carry = self.b & 0x10 == 0x10; // @Correctness?
-        self.cycles + 4;
+        cycles = 4;
       },
       0x06 => {
         // LD n into B
         let value = self.read_byte_parameter(memory);
         self.b = value;
-        self.cycles += 8;
+        cycles = 8;
       },
       0x0d => {
         // DEC c
@@ -79,45 +78,45 @@ impl CPU {
         self.flags.zero = self.c == 0;
         self.flags.subtract = true;
         self.flags.half_carry = self.c & 0x10 == 0x10; // @Correctness?
-        self.cycles += 4;
+        cycles = 4;
       }
       0x0e => {
         // LD n into C
         let value = self.read_byte_parameter(memory);
         self.c = value;
-        self.cycles += 8;
+        cycles = 8;
       },
       0x20 => {
         let rel_target = self.read_signed_byte_parameter(memory);
         if !self.flags.zero {
           self.relative_jump(rel_target);
         }
-        self.cycles += 8;
+        cycles = 8;
       },
       0x21 => {
         // LD nn into HL
         let value = self.read_short_parameter(memory);
         self.h = value.hi();
         self.l = value.lo();
-        self.cycles += 12;
+        cycles = 12;
       },
       0x32 => {
         // LDD A into HL
         let result = (self.a as u16).wrapping_sub(1);
         self.h = result.hi();
         self.l = result.lo();
-        self.cycles += 8;
+        cycles = 8;
       },
       0x3e => {
         // LD # into A
         let result = self.read_byte_parameter(memory);
         self.a = result;
-        self.cycles += 8;
+        cycles = 8;
       },
       0x4d => {
         // LD L into C
         self.c = self.l;
-        self.cycles += 4;
+        cycles = 4;
       },
       0xaf => {
         // XOR A with A
@@ -126,38 +125,38 @@ impl CPU {
         self.flags.subtract = false;
         self.flags.half_carry = false;
         self.flags.carry = false;
-        self.cycles += 4;
+        cycles = 4;
       },
       0xc3 => {
         // JMP nn
         let target = memory.read_short(self.program_counter);
         println!("jumping to {:04x}", target);
         self.program_counter = target;
-        self.cycles += 12; // @Correctness; conflicting information on this
+        cycles = 12; // @Correctness; conflicting information on this
       },
       0xe0 => {
         // LDH n,A
         let offset = self.read_byte_parameter(memory);
         memory.write_byte(0xFF00 + offset as u16, self.a);
-        self.cycles += 12;
+        cycles = 12;
       },
       0xf0 => {
         // LDH A,n
         let offset = self.read_byte_parameter(memory);
         self.a = memory.read_byte(0xFF00 + offset as u16);
-        self.cycles += 12;
+        cycles = 12;
       },
       0xf1 => {
         // Pop into AF
         let short = self.pop_short(memory);
         self.a = short.hi();
         self.f = short.lo();
-        self.cycles += 12
+        cycles = 12
       },
       0xf3 => {
         // Disable interrupts
         // TODO
-        self.cycles += 4;
+        cycles = 4;
       },
       0xfe => {
         // Compare A with #
@@ -166,19 +165,20 @@ impl CPU {
         self.flags.subtract = true;
         self.flags.half_carry = (self.a.wrapping_sub(value)) & 0x10 == 0x10; // @Correctness?
         self.flags.carry = self.a > value;
-        self.cycles += 8
+        cycles = 8
       },
       0xff => {
         // RST 38
         self.write_pc_to_stack(memory);
         self.program_counter = 0x0038;
-        self.cycles += 32;
+        cycles = 32;
       },
       _ => {
         println!("{:02x} at address {:04x}", opcode, self.program_counter);
         unimplemented!()
       }
     }
+    return cycles;
   }
 
   fn relative_jump(&mut self, rel_target: i8) {
