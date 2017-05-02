@@ -46,7 +46,7 @@ impl Memory {
   pub fn write_short(&mut self, address: u16, value: u16) {
     // This is basically un-needed because rust does this in debug mode already
     // but I just want to remind myself
-    debug_assert!(address != 65536);
+    debug_assert!(address != 65535);
     self.memory[translate(address)] = value.lo();
     self.memory[translate(address + 1)] = value.hi();
   }
@@ -62,7 +62,7 @@ impl Memory {
   pub fn read_short(&self, address: u16) -> u16 {
     // This is basically un-needed because rust does this in debug mode already
     // but I just want to remind myself
-    debug_assert!(address != 65536);
+    debug_assert!(address != 65535);
     (self.memory[translate(address + 1)] as u16) << 8 | self.memory[translate(address)] as u16
   }
 }

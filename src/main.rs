@@ -1,5 +1,3 @@
-#![feature(i128_type)]
-
 extern crate glutin;
 #[macro_use]
 extern crate glium;
@@ -32,8 +30,11 @@ fn main() {
     let mut last_time = Instant::now();
     let mut acc = 0;
     'game: loop {
-        let elapsed = Instant::now().duration_since(last_time);
-        acc += (elapsed.as_secs() as i128 * 1000000000) + elapsed.subsec_nanos() as i128;
+        let mut elapsed = Instant::now().duration_since(last_time);
+        if elapsed > Duration::from_millis(100) {
+            elapsed = Duration::from_millis(100);
+        };
+        acc += (elapsed.as_secs() as i64 * 1000000000) + elapsed.subsec_nanos() as i64;
         last_time = Instant::now();
 
         for event in display.poll_events() {
@@ -46,12 +47,9 @@ fn main() {
             }
         }
 
-        let mut sum = 0;
         while acc > 238 {
-            acc -= cpu.step(&mut memory) as i128 * 238;
-            sum += 1;
+            acc -= cpu.step(&mut memory) as i64 * 238;
         }
-        println!("{}", sum);
 
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 0.0);

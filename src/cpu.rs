@@ -6,7 +6,8 @@ struct Flag {
   zero: bool,
   subtract: bool,
   half_carry: bool,
-  carry: bool
+  carry: bool,
+  interrupts: bool
 }
 
 pub struct CPU {
@@ -20,7 +21,8 @@ pub struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
-  flags: Flag
+  flags: Flag,
+  interrupt_disable_countdown: i8
 }
 
 impl CPU {
@@ -36,11 +38,13 @@ impl CPU {
       l: 0x4d,
       stack_pointer: 0xfffe,
       program_counter: 0x100,
+      interrupt_disable_countdown: 0,
       flags: Flag {
         zero: false,
         subtract: false,
         half_carry: false,
-        carry: false
+        carry: false,
+        interrupts: true
       }
     }
   }
@@ -48,7 +52,7 @@ impl CPU {
   pub fn step(&mut self, memory: &mut Memory) -> u8 {
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
-    //println!("{:02x} at address {:04x}", opcode, self.program_counter);
+    println!("{:02x} at address {:04x}", opcode, self.program_counter);
     // Increment
     self.program_counter += 1;
     // Execute
@@ -154,8 +158,8 @@ impl CPU {
         cycles = 12
       },
       0xf3 => {
-        // Disable interrupts
-        // TODO
+        // Disable interrupts (after a delay)
+        self.interrupt_disable_countdown = 2;
         cycles = 4;
       },
       0xfe => {
@@ -178,7 +182,15 @@ impl CPU {
         unimplemented!()
       }
     }
-    return cycles;
+
+    if self.interrupt_disable_countdown > 0 {
+      self.interrupt_disable_countdown -= 1;
+      if self.interrupt_disable_countdown == 0 {
+        self.flags.interrupts = false;
+      }
+    }
+
+    cycles
   }
 
   fn relative_jump(&mut self, rel_target: i8) {
