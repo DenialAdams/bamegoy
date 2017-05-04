@@ -1,18 +1,18 @@
 use memory::Memory;
 use util::LoHi;
 
-// TODO: use bitflags?
-struct Flag {
-  zero: bool,
-  subtract: bool,
-  half_carry: bool,
-  carry: bool,
-  interrupts: bool
+bitflags! {
+    struct Flags: u8 {
+        const ZERO =       0b10000000;
+        const SUBTRACT =   0b01000000;
+        const HALF_CARRY = 0b00100000;
+        const CARRY =      0b00010000;
+    }
 }
 
 pub struct CPU {
   a: u8,
-  f: u8,
+  f: Flags,
   b: u8,
   c: u8,
   d: u8,
@@ -21,15 +21,14 @@ pub struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
-  flags: Flag,
-  interrupt_disable_countdown: i8
+  interrupts: bool
 }
 
 impl CPU {
   pub fn new() -> CPU {
     CPU {
       a: 0x01,
-      f: 0xb0,
+      f: Flags::from_bits_truncate(0xb0),
       b: 0x00,
       c: 0x13,
       d: 0x00,
@@ -38,14 +37,7 @@ impl CPU {
       l: 0x4d,
       stack_pointer: 0xfffe,
       program_counter: 0x100,
-      interrupt_disable_countdown: 0,
-      flags: Flag {
-        zero: false,
-        subtract: false,
-        half_carry: false,
-        carry: false,
-        interrupts: true
-      }
+      interrupts: true
     }
   }
 
@@ -65,9 +57,9 @@ impl CPU {
       0x05 => {
         // DEC b
         self.b = self.b.wrapping_sub(1);
-        self.flags.zero = self.b == 0;
-        self.flags.subtract = true;
-        self.flags.half_carry = self.b & 0x10 == 0x10; // @Correctness?
+        self.f.set(ZERO, self.b == 0);
+        self.f.insert(SUBTRACT);
+        self.f.set(HALF_CARRY, (self.b ^ 1 ^ self.b.wrapping_sub(1)) & 0x10 == 0x10);
         cycles = 4;
       },
       0x06 => {
@@ -79,9 +71,9 @@ impl CPU {
       0x0d => {
         // DEC c
         self.c = self.c.wrapping_sub(1);
-        self.flags.zero = self.c == 0;
-        self.flags.subtract = true;
-        self.flags.half_carry = self.c & 0x10 == 0x10; // @Correctness?
+        self.f.set(ZERO, self.c == 0);
+        self.f.insert(SUBTRACT);
+        self.f.set(HALF_CARRY, (self.c ^ 1 ^ self.c.wrapping_sub(1)) & 0x10 == 0x10);
         cycles = 4;
       }
       0x0e => {
@@ -91,8 +83,9 @@ impl CPU {
         cycles = 8;
       },
       0x20 => {
+        // JP NZ
         let rel_target = self.read_signed_byte_parameter(memory);
-        if !self.flags.zero {
+        if !self.f.contains(ZERO) {
           self.relative_jump(rel_target);
         }
         cycles = 8;
@@ -125,10 +118,10 @@ impl CPU {
       0xaf => {
         // XOR A with A
         self.a ^= self.a;
-        self.flags.zero = self.a == 0;
-        self.flags.subtract = false;
-        self.flags.half_carry = false;
-        self.flags.carry = false;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
         cycles = 4;
       },
       0xc3 => {
@@ -154,21 +147,21 @@ impl CPU {
         // Pop into AF
         let short = self.pop_short(memory);
         self.a = short.hi();
-        self.f = short.lo();
+        self.f = Flags::from_bits_truncate(short.lo());
         cycles = 12
       },
       0xf3 => {
-        // Disable interrupts (after a delay)
-        self.interrupt_disable_countdown = 2;
+        // Disable interrupts
+        self.interrupts = false;
         cycles = 4;
       },
       0xfe => {
         // Compare A with #
         let value = self.read_byte_parameter(memory);
-        self.flags.zero = self.a == value;
-        self.flags.subtract = true;
-        self.flags.half_carry = (self.a.wrapping_sub(value)) & 0x10 == 0x10; // @Correctness?
-        self.flags.carry = self.a > value;
+        self.f.set(ZERO, self.a == value);
+        self.f.insert(SUBTRACT);
+        self.f.set(HALF_CARRY, (self.a ^ value ^ self.a.wrapping_sub(value)) & 0x10 == 0x10);
+        self.f.set(CARRY, self.a > value);
         cycles = 8
       },
       0xff => {
@@ -178,15 +171,7 @@ impl CPU {
         cycles = 32;
       },
       _ => {
-        println!("{:02x} at address {:04x}", opcode, self.program_counter);
         unimplemented!()
-      }
-    }
-
-    if self.interrupt_disable_countdown > 0 {
-      self.interrupt_disable_countdown -= 1;
-      if self.interrupt_disable_countdown == 0 {
-        self.flags.interrupts = false;
       }
     }
 

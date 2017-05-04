@@ -9,6 +9,7 @@ glium = "0.16.0"
 log = "0.3.7"
 log-panics = "1.1.0"
 cpal = "0.4.5"
+bitflags = { git = "https://github.com/rust-lang-nursery/bitflags" }
 
 [dependencies.conrod]
 features = ["winit", "glium"]
