@@ -48,11 +48,10 @@ impl CPU {
     // Increment
     self.program_counter += 1;
     // Execute
-    let cycles;
-    match opcode {
+    let cycles = match opcode {
       0x00 => {
         // NOP
-        cycles = 4;
+        4
       },
       0x05 => {
         // DEC b
@@ -60,13 +59,13 @@ impl CPU {
         self.f.set(ZERO, self.b == 0);
         self.f.insert(SUBTRACT);
         self.f.set(HALF_CARRY, (self.b ^ 1 ^ self.b.wrapping_sub(1)) & 0x10 == 0x10);
-        cycles = 4;
+        4
       },
       0x06 => {
         // LD n into B
         let value = self.read_byte_parameter(memory);
         self.b = value;
-        cycles = 8;
+        8
       },
       0x0d => {
         // DEC c
@@ -74,46 +73,48 @@ impl CPU {
         self.f.set(ZERO, self.c == 0);
         self.f.insert(SUBTRACT);
         self.f.set(HALF_CARRY, (self.c ^ 1 ^ self.c.wrapping_sub(1)) & 0x10 == 0x10);
-        cycles = 4;
+        4
       }
       0x0e => {
         // LD n into C
         let value = self.read_byte_parameter(memory);
         self.c = value;
-        cycles = 8;
+        8
       },
       0x20 => {
         // JP NZ
         let rel_target = self.read_signed_byte_parameter(memory);
         if !self.f.contains(ZERO) {
           self.relative_jump(rel_target);
+          12
+        } else {
+          8
         }
-        cycles = 8;
       },
       0x21 => {
         // LD nn into HL
         let value = self.read_short_parameter(memory);
         self.h = value.hi();
         self.l = value.lo();
-        cycles = 12;
+        12
       },
       0x32 => {
         // LDD A into HL
         let result = (self.a as u16).wrapping_sub(1);
         self.h = result.hi();
         self.l = result.lo();
-        cycles = 8;
+        8
       },
       0x3e => {
         // LD # into A
         let result = self.read_byte_parameter(memory);
         self.a = result;
-        cycles = 8;
+        8
       },
       0x4d => {
         // LD L into C
         self.c = self.l;
-        cycles = 4;
+        4
       },
       0xaf => {
         // XOR A with A
@@ -122,38 +123,38 @@ impl CPU {
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.remove(CARRY);
-        cycles = 4;
+        4
       },
       0xc3 => {
         // JMP nn
         let target = memory.read_short(self.program_counter);
         println!("jumping to {:04x}", target);
         self.program_counter = target;
-        cycles = 12; // @Correctness; conflicting information on this
+        16
       },
       0xe0 => {
         // LDH n,A
         let offset = self.read_byte_parameter(memory);
         memory.write_byte(0xFF00 + offset as u16, self.a);
-        cycles = 12;
+        12
       },
       0xf0 => {
         // LDH A,n
         let offset = self.read_byte_parameter(memory);
         self.a = memory.read_byte(0xFF00 + offset as u16);
-        cycles = 12;
+        12
       },
       0xf1 => {
         // Pop into AF
         let short = self.pop_short(memory);
         self.a = short.hi();
         self.f = Flags::from_bits_truncate(short.lo());
-        cycles = 12
+        12
       },
       0xf3 => {
         // Disable interrupts
         self.interrupts = false;
-        cycles = 4;
+        4
       },
       0xfe => {
         // Compare A with #
@@ -162,18 +163,18 @@ impl CPU {
         self.f.insert(SUBTRACT);
         self.f.set(HALF_CARRY, (self.a ^ value ^ self.a.wrapping_sub(value)) & 0x10 == 0x10);
         self.f.set(CARRY, self.a > value);
-        cycles = 8
+        8
       },
       0xff => {
         // RST 38
         self.write_pc_to_stack(memory);
         self.program_counter = 0x0038;
-        cycles = 32;
+        16
       },
       _ => {
         unimplemented!()
       }
-    }
+    };
 
     cycles
   }
