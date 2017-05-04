@@ -58,7 +58,7 @@ impl CPU {
         self.b = self.b.wrapping_sub(1);
         self.f.set(ZERO, self.b == 0);
         self.f.insert(SUBTRACT);
-        self.f.set(HALF_CARRY, (self.b ^ 1 ^ self.b.wrapping_sub(1)) & 0x10 == 0x10);
+        self.f.set(HALF_CARRY, (self.b ^ 255 ^ self.b.wrapping_sub(1)) & 0x10 == 0x10);
         4
       },
       0x06 => {
@@ -72,7 +72,7 @@ impl CPU {
         self.c = self.c.wrapping_sub(1);
         self.f.set(ZERO, self.c == 0);
         self.f.insert(SUBTRACT);
-        self.f.set(HALF_CARRY, (self.c ^ 1 ^ self.c.wrapping_sub(1)) & 0x10 == 0x10);
+        self.f.set(HALF_CARRY, (self.c ^ 255 ^ self.c.wrapping_sub(1)) & 0x10 == 0x10);
         4
       }
       0x0e => {
@@ -167,7 +167,8 @@ impl CPU {
       },
       0xff => {
         // RST 38
-        self.write_pc_to_stack(memory);
+        let pc = self.program_counter;
+        self.write_short_to_stack(memory, pc);
         self.program_counter = 0x0038;
         16
       },
@@ -187,11 +188,11 @@ impl CPU {
     }
   }
 
-  fn write_pc_to_stack(&mut self, memory: &mut Memory) {
+  fn write_short_to_stack(&mut self, memory: &mut Memory, value: u16) {
     self.decrement_sp();
-    memory.write_byte(self.stack_pointer, self.program_counter.hi());
+    memory.write_byte(self.stack_pointer, value.hi());
     self.decrement_sp();
-    memory.write_byte(self.stack_pointer, self.program_counter.lo());
+    memory.write_byte(self.stack_pointer, value.lo());
   }
 
   fn pop_short(&mut self, memory: &Memory) -> u16 {
