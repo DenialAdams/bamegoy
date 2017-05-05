@@ -53,6 +53,12 @@ impl CPU {
         // NOP
         4
       },
+      0x02 => {
+        // LD (BC),A
+        let value = memory.read_byte((self.b as u16) << 8 | self.c as u16);
+        self.a = value;
+        8
+      },
       0x05 => {
         // DEC b
         self.b = self.b.wrapping_sub(1);
@@ -81,8 +87,14 @@ impl CPU {
         self.c = value;
         8
       },
+      0x18 => {
+        // JR
+        let rel_target = self.read_signed_byte_parameter(memory);
+        self.relative_jump(rel_target);
+        12
+      }
       0x20 => {
-        // JP NZ
+        // JR NZ
         let rel_target = self.read_signed_byte_parameter(memory);
         if !self.f.contains(ZERO) {
           self.relative_jump(rel_target);
@@ -122,6 +134,25 @@ impl CPU {
         self.c = self.l;
         4
       },
+      0x7c =>{
+        // LD A, H
+        self.a = self.h;
+        4
+      }
+      0x7d => {
+        // LD A,L
+        self.a = self.l;
+        4
+      },
+      0xa3 => {
+        // AND E
+        self.a &= self.e;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.insert(HALF_CARRY);
+        self.f.remove(CARRY);
+        4
+      },
       0xaf => {
         // XOR A with A
         self.a ^= self.a;
@@ -136,6 +167,20 @@ impl CPU {
         let target = memory.read_short(self.program_counter);
         println!("jumping to {:04x}", target);
         self.program_counter = target;
+        16
+      },
+      0xcd => {
+        let pc = self.program_counter;
+        self.write_short_to_stack(memory, pc);
+        let target = memory.read_short(self.program_counter);
+        println!("jumping to {:04x}", target);
+        self.program_counter = target;
+        24
+      },
+      0xc9 => {
+        // RET
+        let dest = self.pop_short(memory);
+        self.program_counter = dest;
         16
       },
       0xea => {
