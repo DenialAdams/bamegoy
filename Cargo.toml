@@ -10,10 +10,11 @@ log = "0.3.7"
 log-panics = "1.1.0"
 cpal = "0.4.5"
 bitflags = { git = "https://github.com/rust-lang-nursery/bitflags" }
+image = "0.13.0"
 
 [dependencies.conrod]
 features = ["winit", "glium"]
-version = "0.51.1"
+version = "0.52.0"
 
 [profile.release]
 lto = true
