@@ -195,6 +195,12 @@ impl CPU {
         memory.write_byte(0xFF00 + offset as u16, self.a);
         12
       },
+      0xe5 => {
+        // PUSH HL
+        let hl = self.hl();
+        self.write_short_to_stack(memory, hl);
+        16
+      },
       0xf0 => {
         // LDH A,n
         let offset = self.read_byte_parameter(memory);
@@ -284,5 +290,9 @@ impl CPU {
   fn increment_sp(&mut self) {
     debug_assert!(self.stack_pointer != 0xFFFE);
     self.stack_pointer += 1;
+  }
+
+  fn hl(&self) -> u16 {
+    (self.h as u16) << 8 | self.l as u16
   }
 }
