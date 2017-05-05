@@ -59,6 +59,13 @@ impl CPU {
         self.a = value;
         8
       },
+      0x03 => {
+        // INC bc
+        let val = self.bc().wrapping_add(1);
+        self.b = val.hi();
+        self.c = val.lo();
+        8
+      },
       0x05 => {
         // DEC b
         self.b = self.b.wrapping_sub(1);
@@ -110,6 +117,21 @@ impl CPU {
         self.l = value.lo();
         12
       },
+      0x23 => {
+        // INC HL
+        let val = self.hl().wrapping_add(1);
+        self.h = val.hi();
+        self.l = val.lo();
+        8
+      },
+      0x2a => {
+        // LD A,(HL+)
+        self.a = memory.read_byte(self.hl());
+        let val = self.hl().wrapping_add(1);
+        self.h = val.hi();
+        self.l = val.lo();
+        8
+      },
       0x31 => {
         // LD short as sp
         let value = self.read_short_parameter(memory);
@@ -134,7 +156,22 @@ impl CPU {
         self.c = self.l;
         4
       },
-      0x7c =>{
+      0x5d => {
+        // LD E,L
+        self.e = self.l;
+        4
+      },
+      0x7a => {
+        // LD A,D
+        self.a = self.d;
+        4
+      },
+      0x7b => {
+        // LD A,E
+        self.a = self.e;
+        4
+      },
+      0x7c => {
         // LD A, H
         self.a = self.h;
         4
@@ -195,6 +232,12 @@ impl CPU {
         memory.write_byte(0xFF00 + offset as u16, self.a);
         12
       },
+      0xe1 => {
+        // POP HL
+        self.l = self.pop_byte(memory);
+        self.h = self.pop_byte(memory);
+        12
+      }
       0xe5 => {
         // PUSH HL
         let hl = self.hl();
@@ -209,9 +252,8 @@ impl CPU {
       },
       0xf1 => {
         // Pop into AF
-        let short = self.pop_short(memory);
-        self.a = short.hi();
-        self.f = Flags::from_bits_truncate(short.lo());
+        self.f = Flags::from_bits_truncate(self.pop_byte(memory));
+        self.a = self.pop_byte(memory);
         12
       },
       0xf3 => {
@@ -228,6 +270,12 @@ impl CPU {
         self.f.set(CARRY, self.a > value);
         8
       },
+      0xf5 => {
+        // Push AF
+        let af = self.af();
+        self.write_short_to_stack(memory, af);
+        16
+      }
       0xff => {
         // RST 38
         let pc = self.program_counter;
@@ -264,6 +312,12 @@ impl CPU {
     x
   }
 
+  fn pop_byte(&mut self, memory: &Memory) -> u8 {
+    let x = memory.read_byte(self.stack_pointer);
+    self.increment_sp();
+    x
+  }
+
   fn read_short_parameter(&mut self, memory: &Memory) -> u16 {
     let value = memory.read_short(self.program_counter);
     self.program_counter += 2;
@@ -294,5 +348,13 @@ impl CPU {
 
   fn hl(&self) -> u16 {
     (self.h as u16) << 8 | self.l as u16
+  }
+
+  fn af(&self) -> u16 {
+    (self.a as u16) << 8 | self.f.bits as u16
+  }
+
+  fn bc(&self) -> u16 {
+    (self.b as u16) << 8 | self.c as u16
   }
 }
