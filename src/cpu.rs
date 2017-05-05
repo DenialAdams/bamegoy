@@ -48,7 +48,7 @@ impl CPU {
     // Increment
     self.program_counter += 1;
     // Execute
-    let cycles = match opcode {
+    match opcode {
       0x00 => {
         // NOP
         4
@@ -98,6 +98,12 @@ impl CPU {
         self.l = value.lo();
         12
       },
+      0x31 => {
+        // LD short as sp
+        let value = self.read_short_parameter(memory);
+        self.stack_pointer = value;
+        12
+      },
       0x32 => {
         // LDD A into HL
         let result = (self.a as u16).wrapping_sub(1);
@@ -130,6 +136,12 @@ impl CPU {
         let target = memory.read_short(self.program_counter);
         println!("jumping to {:04x}", target);
         self.program_counter = target;
+        16
+      },
+      0xea => {
+        // LD nn,A
+        let dest = self.read_short_parameter(memory);
+        memory.write_byte(dest, self.a);
         16
       },
       0xe0 => {
@@ -175,9 +187,7 @@ impl CPU {
       _ => {
         unimplemented!()
       }
-    };
-
-    cycles
+    }
   }
 
   fn relative_jump(&mut self, rel_target: i8) {
