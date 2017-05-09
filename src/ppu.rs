@@ -19,14 +19,14 @@ pub fn draw(memory: &Memory) -> (glium::texture::RawImage2d<u8>, u8) {
   let mut img = ImageBuffer::new(256, 256);
   let control = LCDC::from_bits_truncate(memory.read_byte(0xff40));
   let tiles = if control.contains(BG_WINDOW_TILESET) {
-    &memory.memory[0x8000...0x8fff]
+    &memory.memory[0x8000..0x9000]
   } else {
-    &memory.memory[0x8800...0x97ff]
+    &memory.memory[0x8800..0x9800]
   };
   let bg_tile_map = if control.contains(BG_TILE_MAP) {
-    &memory.memory[0x9c00...0x9fff]
+    &memory.memory[0x9c00..0xa000]
   } else {
-    &memory.memory[0x9800...0x9bff]
+    &memory.memory[0x9800..0x9c00]
   };
   let mut cur_x = 0;
   let mut cur_y = 0;

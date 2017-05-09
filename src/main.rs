@@ -1,5 +1,3 @@
-#![feature(inclusive_range_syntax)]
-
 #[macro_use]
 extern crate conrod;
 extern crate glutin;
