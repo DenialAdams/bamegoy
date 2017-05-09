@@ -85,8 +85,8 @@ fn main() {
             acc -= cpu.step(&mut memory) as i64 * 238;
         }
         let draw_results = ppu::draw(&memory);
-        //let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
-        //let _ = image_map.replace(game_screen, texture);
+        let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
+        let _ = image_map.replace(game_screen, texture);
         ui.needs_redraw();
 
         // Instantiate all widgets in the GUI.

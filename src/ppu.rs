@@ -1,9 +1,6 @@
 use memory::Memory;
-use image::{GenericImage, ImageBuffer, Rgba};
+use image::{ImageBuffer, Rgba};
 use glium;
-
-use std::path::Path;
-use image;
 
 bitflags! {
     struct LCDC: u8 {
@@ -38,7 +35,7 @@ pub fn draw(memory: &Memory) -> (glium::texture::RawImage2d<u8>, u8) {
       let real_index = if control.contains(BG_WINDOW_TILESET) {
         *index as usize * 16
       } else {
-        *index as usize * 16
+        ((*index) as i8 as i16 + 128) as usize * 16
       };
       let tile = &tiles[real_index..real_index+16];
       for line in tile.chunks(2) {
