@@ -554,7 +554,7 @@ impl CPU {
   }
 
   fn push_byte(&mut self, memory: &mut Memory, value: u8) {
-    self.decrement_sp();
+    self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     memory.write_byte(self.stack_pointer, value);
   }
 
@@ -565,7 +565,7 @@ impl CPU {
 
   fn pop_byte(&mut self, memory: &Memory) -> u8 {
     let x = memory.read_byte(self.stack_pointer);
-    self.increment_sp();
+    self.stack_pointer = self.stack_pointer.wrapping_add(1);
     x
   }
 
@@ -586,17 +586,7 @@ impl CPU {
     self.program_counter += 1;
     value
   }
-
-  fn decrement_sp(&mut self) {
-    debug_assert!(self.stack_pointer != 0xFF80);
-    self.stack_pointer -= 1;
-  }
-
-  fn increment_sp(&mut self) {
-    debug_assert!(self.stack_pointer != 0xFFFE);
-    self.stack_pointer += 1;
-  }
-
+  
   fn hl(&self) -> u16 {
     (self.h as u16) << 8 | self.l as u16
   }
