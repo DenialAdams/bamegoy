@@ -45,14 +45,16 @@ fn main() {
 
     let mut memory = memory::Memory::new();
     let mut cpu = cpu::CPU::new();
+    let mut ppu = ppu::PPU::new();
     let rom_path = std::env::args().nth(1).expect("Gameboy ROM expected as argument");
 
     rom::load_rom(&mut memory, &rom_path).unwrap();
 
     let mut last_time = Instant::now();
-    let mut acc = 0;
+    let mut cpu_acc = 0;
+    let mut ppu_acc = 0;
     let game_screen = {
-        let draw_results = ppu::draw(&memory);
+        let draw_results = ppu.draw(&memory);
         let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
         image_map.insert(texture)
     };
@@ -61,7 +63,8 @@ fn main() {
         if elapsed > Duration::from_millis(100) {
             elapsed = Duration::from_millis(100);
         };
-        acc += (elapsed.as_secs() as i64 * 1000000000) + elapsed.subsec_nanos() as i64;
+        cpu_acc += (elapsed.as_secs() as i64 * 1000000000) + elapsed.subsec_nanos() as i64;
+        ppu_acc += (elapsed.as_secs() as i64 * 1000000000) + elapsed.subsec_nanos() as i64;
         last_time = Instant::now();
 
         for event in display.poll_events() {
@@ -79,10 +82,27 @@ fn main() {
             }
         }
 
-        while acc > 952 {
-            acc -= cpu.step(&mut memory) as i64 * 238;
+
+        // TODO:
+        // I think it would be cool to emulate the next step and see how long that took
+        // then only follow through on it if we banked enough time
+        // right now we are going too fast
+        let mut did_something = true;
+        while did_something {
+            did_something = false;
+            if cpu_acc > 952 {
+                cpu_acc -= cpu.step(&mut memory) as i64 * 238;
+                did_something = true;
+            }
+            if ppu_acc > ppu.estimate_clock_cycles() as i64 * 238 {
+                ppu_acc -= ppu.step(&mut memory) as i64 * 238;
+                did_something = true;
+            }
         }
-        let draw_results = ppu::draw(&memory);
+        while ppu_acc > ppu.estimate_clock_cycles() as i64 * 238 {
+            
+        }
+        let draw_results = ppu.draw(&memory);
         let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
         let _ = image_map.replace(game_screen, texture);
         ui.needs_redraw();
