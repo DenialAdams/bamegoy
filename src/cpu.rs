@@ -41,10 +41,11 @@ impl CPU {
     }
   }
 
-  pub fn step(&mut self, memory: &mut Memory) -> u8 {
+  pub fn step(&mut self, memory: &mut Memory) -> i64 {
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
     println!("{:02x} at address {:04x}", opcode, self.program_counter);
+    assert!(self.program_counter <= 0x7FFF);
     // Increment
     self.program_counter = self.program_counter.wrapping_add(1);
     // Execute
@@ -86,6 +87,15 @@ impl CPU {
         let value = self.read_byte_immediate(memory);
         self.b = value;
         8
+      },
+      0x07 => {
+        // RLCA
+        self.f.remove(ZERO);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.set(CARRY, (self.a & 0x80) == 0x80);
+        self.a <<= 1;
+        4
       },
       0x0b => {
         // DEC bc
@@ -132,9 +142,16 @@ impl CPU {
       },
       0x11 => {
         // LD DE,d16
-        let e = self.read_byte_immediate(memory);
-        let d = self.read_byte_immediate(memory);
+        self.e = self.read_byte_immediate(memory);
+        self.d = self.read_byte_immediate(memory);
         12
+      },
+      0x13 => {
+        // INC DE
+        let val = self.de().wrapping_add(1);
+        self.d = val.hi();
+        self.e = val.lo();
+        8
       },
       0x18 => {
         // JR
@@ -173,6 +190,14 @@ impl CPU {
         self.l = value.lo();
         12
       },
+      0x22 => {
+        // LD (HL+),A
+        memory.write_byte(self.hl(), self.a);
+        let val = self.hl().wrapping_add(1);
+        self.h = val.hi();
+        self.l = val.lo();
+        8
+      }
       0x23 => {
         // INC HL
         let val = self.hl().wrapping_add(1);
@@ -180,6 +205,15 @@ impl CPU {
         self.l = val.lo();
         8
       },
+      0x24 => {
+        // INC H
+        let orig = self.h;
+        self.e = self.h.wrapping_add(1);
+        self.f.set(ZERO, self.h == 0);
+        self.f.remove(SUBTRACT);
+        self.f.set(HALF_CARRY, (orig ^ 1 ^ self.h & 0x10) == 0x10);
+        4
+      }
       0x28 => {
         // JR Z,r8
         let rel_target = self.read_signed_byte_immediate(memory);
@@ -197,16 +231,6 @@ impl CPU {
         self.h = val.hi();
         self.l = val.lo();
         8
-      },
-      0x28 => {
-        // JR Z,r8
-        let rel_target = self.read_signed_byte_immediate(memory);
-        if self.f.contains(ZERO) {
-          self.relative_jump(rel_target);
-          12
-        } else {
-          8
-        }
       },
       0x2c => {
         // INC L
@@ -275,6 +299,11 @@ impl CPU {
         self.c = self.l;
         4
       },
+      0x56 => {
+        // LD D,(HL)
+        self.d = memory.read_byte(self.hl());
+        8
+      },
       0x5a => {
         // LD E,D
         self.e = self.d;
@@ -284,6 +313,11 @@ impl CPU {
         // LD E,L
         self.e = self.l;
         4
+      },
+      0x5e => {
+        // LD E,(HL)
+        self.e = memory.read_byte(self.hl());
+        8
       },
       0x62 => {
         // LD H,D
@@ -325,6 +359,11 @@ impl CPU {
         self.a = memory.read_byte(self.hl());
         8
       },
+      0x7f => {
+        // LD A,A
+        // self.a = self.a;
+        4
+      }
       0x83 => {
         // ADD A,E
         let original = self.a;
@@ -377,17 +416,27 @@ impl CPU {
       },
       0xa7 => {
         // AND A
-        self.a &= self.a;
+        // self.a &= self.a;
         self.f.set(ZERO, self.a == 0);
         self.f.remove(SUBTRACT);
         self.f.insert(HALF_CARRY);
         self.f.remove(CARRY);
         4
       },
+      0xa9 => {
+        // XOR C
+        self.a ^= self.c;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        4
+      },
       0xaf => {
         // XOR A with A
-        self.a ^= self.a;
-        self.f.set(ZERO, self.a == 0);
+        //self.a ^= self.a;
+        self.a = 0;
+        self.f.insert(ZERO);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.remove(CARRY);
@@ -433,6 +482,18 @@ impl CPU {
         self.program_counter = target;
         16
       },
+      0xc4 => {
+        // CALL NZ,a16
+        let target = self.read_short_immediate(memory);
+        if !self.f.contains(ZERO) {
+          let pc = self.program_counter;
+          self.push_short(memory, pc);
+          self.program_counter = target;
+          24
+        } else {
+          12
+        }
+      },
       0xc5 => {
         // PUSH BC
         let b = self.b;
@@ -454,10 +515,12 @@ impl CPU {
         self.program_counter = dest;
         16
       },
-      0xea => {
-        // LD nn,A
-        let dest = self.read_short_immediate(memory);
-        memory.write_byte(dest, self.a);
+      0xd5 => {
+        // PUSH DE
+        let d = self.d;
+        self.push_byte(memory, d);
+        let e = self.e;
+        self.push_byte(memory, e);
         16
       },
       0xe0 => {
@@ -479,9 +542,21 @@ impl CPU {
       },
       0xe5 => {
         // PUSH HL
-        let hl = self.hl();
-        self.push_short(memory, hl);
+        let h = self.h;
+        self.push_byte(memory, h);
+        let l = self.l;
+        self.push_byte(memory, l);
         16
+      },
+      0xe6 => {
+        // AND d8
+        let val = self.read_byte_immediate(memory);
+        self.a &= val;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.insert(HALF_CARRY);
+        self.f.remove(CARRY);
+        8
       },
       0xe7 => {
         // RST 20H
@@ -492,8 +567,24 @@ impl CPU {
       },
       0xe9 => {
         // JP (HL)
-        self.program_counter = memory.read_short(self.hl());
+        self.program_counter = self.hl();
         4
+      },
+      0xea => {
+        // LD a16,A
+        let dest = self.read_short_immediate(memory);
+        memory.write_byte(dest, self.a);
+        16
+      },
+      0xee => {
+        // XOR d8
+        let val = self.read_byte_immediate(memory);
+        self.a ^= val;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        8
       },
       0xf0 => {
         // LDH A,n
@@ -512,6 +603,18 @@ impl CPU {
         self.interrupts = false;
         4
       },
+      0xf5 => {
+        // PSH AF
+        let af = self.af();
+        self.push_short(memory, af);
+        16
+      },
+      0xfa => {
+        // LD A,(a16)
+        let addr = self.read_short_immediate(memory);
+        self.a = memory.read_byte(addr);
+        16
+      },
       0xfe => {
         // CP n
         let value = self.read_byte_immediate(memory);
@@ -520,12 +623,6 @@ impl CPU {
         self.f.set(HALF_CARRY, (self.a ^ value ^ self.a.wrapping_sub(value)) & 0x10 == 0x10);
         self.f.set(CARRY, self.a > value);
         8
-      },
-      0xf5 => {
-        // PSH AF
-        let af = self.af();
-        self.push_short(memory, af);
-        16
       },
       0xff => {
         // RST 38
@@ -548,7 +645,8 @@ impl CPU {
     }
   }
 
-  fn push_short(&mut self, memory: &mut Memory, value: u16) {
+  fn push_short(&mut self, memory: &mut Memory, value: u16) { 
+    println!("pushing {:x} onto stack", value);
     self.push_byte(memory, value.hi());
     self.push_byte(memory, value.lo());
   }
@@ -560,7 +658,9 @@ impl CPU {
 
   fn pop_short(&mut self, memory: &Memory) -> u16 {
     let lo = self.pop_byte(memory) as u16;
-    (self.pop_byte(memory) as u16) << 8 | lo
+    let t = (self.pop_byte(memory) as u16) << 8 | lo;
+    println!("popping {:x} off stack", t);
+    t
   }
 
   fn pop_byte(&mut self, memory: &Memory) -> u8 {

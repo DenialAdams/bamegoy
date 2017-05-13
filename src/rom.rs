@@ -35,6 +35,5 @@ enum Cart {
 pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), io::Error> {
   let mut file = File::open(path)?;
   let mut buf = &mut memory.memory[0..0x8000];
-  file.read_exact(buf)?;
-  return Ok(())
+  file.read_exact(buf)
 }

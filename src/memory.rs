@@ -33,7 +33,7 @@ pub struct Memory {
 impl Memory {
   pub fn new() -> Memory {
     Memory {
-      memory: Box::new(unsafe { std::mem::uninitialized() })
+      memory: Box::new(unsafe { std::mem::zeroed() })
     }
   }
 

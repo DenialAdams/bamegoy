@@ -26,6 +26,7 @@ bitflags! {
     }
 }
 
+#[derive(Clone, Copy)]
 enum Mode {
   HBlank,
   VBlank,
@@ -93,30 +94,37 @@ impl PPU {
     (glium::texture::RawImage2d::from_raw_rgba_reversed(self.frame_buffer.clone().into_raw(), (256, 256)), 0)
   }
 
-  pub fn step(&mut self, memory: &mut Memory) -> u8 {
+  pub fn step(&mut self, memory: &mut Memory) -> i64 {
     match self.mode {
       Mode::OAMSearch => {
         self.mode = Mode::PixelTransfer;
+        memory.memory[0xff41] = (memory.memory[0xff41] & 0xFC) | Mode::PixelTransfer as u8;
         80
       },
       Mode::PixelTransfer => {
         self.mode = Mode::HBlank;
+        memory.memory[0xff41] = memory.memory[0xff41] & 0xFC;
         172 // This number is WRONG, in actuality this depends on stuff
       },
       Mode::HBlank => {
         self.current_line += 1;
-        if (self.current_line == 144) {
+        if self.current_line == 144 {
           self.mode = Mode::VBlank;
+          memory.memory[0xff41] = (memory.memory[0xff41] & 0xFC) | Mode::VBlank as u8;
           memory.memory[0xff40] |= VBLANK.bits();
+        } else {
+          self.mode = Mode::OAMSearch;
+          memory.memory[0xff41] = (memory.memory[0xff41] & 0xFC) | Mode::OAMSearch as u8;
         }
         memory.memory[0xff44] = self.current_line;
         204
       },
       Mode::VBlank => {
         self.current_line += 1;
-        if (self.current_line == 154) {
+        if self.current_line == 154 {
           self.current_line = 0;
           self.mode = Mode::OAMSearch;
+          memory.memory[0xff41] = (memory.memory[0xff41] & 0xFC) | Mode::OAMSearch as u8;
           memory.memory[0xff40] &= !VBLANK.bits();
         }
         memory.memory[0xff44] = self.current_line;
@@ -125,7 +133,7 @@ impl PPU {
     }
   }
 
-  pub fn estimate_clock_cycles(&mut self) -> u8 {
+  pub fn estimate_clock_cycles(&mut self) -> i64 {
     match self.mode {
       Mode::OAMSearch => {
         80

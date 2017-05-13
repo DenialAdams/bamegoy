@@ -91,15 +91,15 @@ fn main() {
         while did_something {
             did_something = false;
             if cpu_acc > 952 {
-                cpu_acc -= cpu.step(&mut memory) as i64 * 238;
+                cpu_acc -= cpu.step(&mut memory) * 238;
                 did_something = true;
             }
             if ppu_acc > ppu.estimate_clock_cycles() as i64 * 238 {
-                ppu_acc -= ppu.step(&mut memory) as i64 * 238;
+                ppu_acc -= ppu.step(&mut memory) * 238;
                 did_something = true;
             }
         }
-        while ppu_acc > ppu.estimate_clock_cycles() as i64 * 238 {
+        while ppu_acc > ppu.estimate_clock_cycles() * 238 {
             
         }
         let draw_results = ppu.draw(&memory);
