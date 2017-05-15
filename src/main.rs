@@ -46,6 +46,7 @@ fn main() {
     let mut memory = memory::Memory::new();
     let mut cpu = cpu::CPU::new();
     let mut ppu = ppu::PPU::new();
+    memory.memory[0xff44] = 0; // Start at scanline 0
     memory.memory[0xff40] &= 0x80; // Flag LCD as on
     let rom_path = std::env::args().nth(1).expect("Gameboy ROM expected as argument");
 

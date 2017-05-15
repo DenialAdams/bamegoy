@@ -242,13 +242,13 @@ impl CPU {
         4
       },
       0x31 => {
-        // LD short as sp
+        // LD SP,d16
         let value = self.read_short_immediate(memory);
         self.stack_pointer = value;
         12
       },
       0x32 => {
-        // LDD A into HL
+        // LD (HL-),A
         let result = (self.a as u16).wrapping_sub(1);
         self.h = result.hi();
         self.l = result.lo();
