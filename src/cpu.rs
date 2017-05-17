@@ -21,7 +21,7 @@ pub struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
-  interrupts: bool
+  interrupts: bool // IME
 }
 
 impl CPU {
@@ -90,11 +90,13 @@ impl CPU {
       },
       0x07 => {
         // RLCA
+        let old_carry = (self.f.bits & CARRY.bits) >> 4; // 0 or 1
         self.f.remove(ZERO);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.set(CARRY, (self.a & 0x80) == 0x80);
         self.a <<= 1;
+        self.a |= old_carry;
         4
       },
       0x0b => {
