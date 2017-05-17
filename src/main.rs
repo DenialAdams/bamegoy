@@ -37,7 +37,7 @@ fn main() {
     let mut ui = conrod::UiBuilder::new([800.0, 600.0]).build();
 
     let ids = Ids::new(ui.widget_id_generator());
-    ui.fonts.insert_from_file("resource/PXSansRegular.ttf").unwrap();
+    ui.fonts.insert_from_file("resource/font/PXSansRegular.ttf").unwrap();
 
     let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
 
