@@ -54,6 +54,8 @@ impl Memory {
   pub fn read_byte(&self, address: u16) -> u8 {
     if address >= 0xFEA0 && address <= 0xFEFF {
       0xff
+    } else if address == 0xFF0F {
+      0b11100000 & self.memory[0xff0f]
     } else {
       self.memory[translate(address)]
     }
