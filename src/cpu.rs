@@ -3,11 +3,31 @@ use util::LoHi;
 
 bitflags! {
   struct Flags: u8 {
-    const ZERO =       0b10000000;
-    const SUBTRACT =   0b01000000;
+    const ZERO       = 0b10000000;
+    const SUBTRACT   = 0b01000000;
     const HALF_CARRY = 0b00100000;
-    const CARRY =      0b00010000;
+    const CARRY      = 0b00010000;
   }
+}
+
+// TODO: upper bits of FF0F should always read 1 (in memory)
+// FFFF & FF0F
+bitflags! {
+  struct InterruptFlags: u8 {
+    const JOYPAD   = 0b00010000;
+    const SERIAL   = 0b00001000;
+    const TIMER    = 0b00000100;
+    const LCD_STAT = 0b00000010;
+    const VBLANK   = 0b00000001;
+  }
+}
+
+enum Interrupt {
+  VBlank  = 0x0040,
+  LCDStat = 0x0048,
+  Timer   = 0x0050,
+  Serial  = 0x0058,
+  Joypad  = 0x0060
 }
 
 pub struct CPU {
@@ -41,7 +61,46 @@ impl CPU {
     }
   }
 
-  pub fn step(&mut self, memory: &mut Memory) -> i64 {
+  pub fn step(&mut self, memory: &mut Memory) -> i64 {    
+    // Interrupts
+    {
+      let mut activeInterrupt: Option<Interrupt> = None;
+
+      let mut ifs  = InterruptFlags::from_bits_truncate(memory.read_byte(0xff0f));
+      let ies  = InterruptFlags::from_bits_truncate(memory.read_byte(0xffff));
+
+      if ifs.contains(VBLANK) && ies.contains(VBLANK) {
+        activeInterrupt = Some(Interrupt::VBlank);
+        ifs.remove(VBLANK);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(LCD_STAT) && ies.contains(LCD_STAT) {
+        activeInterrupt = Some(Interrupt::LCDStat);
+        ifs.remove(LCD_STAT);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(TIMER) && ies.contains(TIMER) {
+        activeInterrupt = Some(Interrupt::Timer);
+        ifs.remove(TIMER);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(SERIAL) && ies.contains(SERIAL) {
+        activeInterrupt = Some(Interrupt::Serial);
+        ifs.remove(SERIAL);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(JOYPAD) && ies.contains(JOYPAD) {
+        activeInterrupt = Some(Interrupt::Joypad);
+        ifs.remove(JOYPAD);
+        memory.write_byte(0xff0f, ifs.bits);
+      }
+
+      if self.interrupts {
+        if let Some(interrupt) = activeInterrupt {
+          let pc = self.program_counter;
+          self.push_short(memory, pc);
+          self.program_counter = interrupt as u16;
+          self.interrupts = false;
+          return 80;
+        }
+      }
+    }
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
     println!("{:02x} at address {:04x}", opcode, self.program_counter);
