@@ -64,10 +64,10 @@ impl CPU {
   pub fn step(&mut self, memory: &mut Memory) -> i64 {    
     // Interrupts
     {
-      let mut activeInterrupt: Option<Interrupt> = None;
+      let mut active_interrupt: Option<Interrupt> = None;
 
-      let mut ifs  = InterruptFlags::from_bits_truncate(memory.read_byte(0xff0f));
-      let ies  = InterruptFlags::from_bits_truncate(memory.read_byte(0xffff));
+      let mut ifs = InterruptFlags::from_bits_truncate(memory.read_byte(0xff0f));
+      let ies = InterruptFlags::from_bits_truncate(memory.read_byte(0xffff));
 
       if ifs.contains(VBLANK) && ies.contains(VBLANK) {
         activeInterrupt = Some(Interrupt::VBlank);
