@@ -10,7 +10,6 @@ bitflags! {
   }
 }
 
-// TODO: upper bits of FF0F should always read 1 (in memory)
 // FFFF & FF0F
 bitflags! {
   struct InterruptFlags: u8 {
