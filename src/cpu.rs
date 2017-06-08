@@ -70,29 +70,29 @@ impl CPU {
       let ies = InterruptFlags::from_bits_truncate(memory.read_byte(0xffff));
 
       if ifs.contains(VBLANK) && ies.contains(VBLANK) {
-        activeInterrupt = Some(Interrupt::VBlank);
+        active_interrupt = Some(Interrupt::VBlank);
         ifs.remove(VBLANK);
         memory.write_byte(0xff0f, ifs.bits);
       } else if ifs.contains(LCD_STAT) && ies.contains(LCD_STAT) {
-        activeInterrupt = Some(Interrupt::LCDStat);
+        active_interrupt = Some(Interrupt::LCDStat);
         ifs.remove(LCD_STAT);
         memory.write_byte(0xff0f, ifs.bits);
       } else if ifs.contains(TIMER) && ies.contains(TIMER) {
-        activeInterrupt = Some(Interrupt::Timer);
+        active_interrupt = Some(Interrupt::Timer);
         ifs.remove(TIMER);
         memory.write_byte(0xff0f, ifs.bits);
       } else if ifs.contains(SERIAL) && ies.contains(SERIAL) {
-        activeInterrupt = Some(Interrupt::Serial);
+        active_interrupt = Some(Interrupt::Serial);
         ifs.remove(SERIAL);
         memory.write_byte(0xff0f, ifs.bits);
       } else if ifs.contains(JOYPAD) && ies.contains(JOYPAD) {
-        activeInterrupt = Some(Interrupt::Joypad);
+        active_interrupt = Some(Interrupt::Joypad);
         ifs.remove(JOYPAD);
         memory.write_byte(0xff0f, ifs.bits);
       }
 
       if self.interrupts {
-        if let Some(interrupt) = activeInterrupt {
+        if let Some(interrupt) = active_interrupt {
           let pc = self.program_counter;
           self.push_short(memory, pc);
           self.program_counter = interrupt as u16;
