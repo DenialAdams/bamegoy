@@ -389,9 +389,104 @@ impl CPU {
         self.a = result;
         8
       },
+      0x40 => {
+        // LD B,B
+        // self.b = self.b;
+        4
+      },
+      0x41 => {
+        // LD B,C
+        self.b = self.c;
+        4
+      },
+      0x42 => {
+        // LD B,D
+        self.b = self.d;
+        4
+      },
+      0x43 => {
+        // LD B,E
+        self.b = self.e;
+        4
+      },
+      0x44 => {
+        // LD B,H
+        self.b = self.h;
+        4
+      },
+      0x45 => {
+        // LD B,L
+        self.b = self.l;
+        4
+      },
+      0x47 => {
+        // LD B,A
+        self.b = self.a;
+        4
+      },
+      0x48 => {
+        // LD C,B
+        self.c = self.b;
+        4
+      },
+      0x49 => {
+        // LD C,C
+        // self.c = self.c;
+        4
+      },
+      0x4a => {
+        // LD C,D
+        self.c = self.d;
+        4
+      },
+      0x4b => {
+        // LD C,E
+        self.c = self.e;
+        4
+      },
+      0x4c => {
+        // LD C,H
+        self.c = self.h;
+        4
+      },
       0x4d => {
-        // LD L into C
+        // LD C,L
         self.c = self.l;
+        4
+      },
+      0x4f => {
+        // LD C,A
+        self.c = self.a;
+        4
+      },
+      0x50 => {
+        // LD D,B
+        self.d = self.b;
+        4
+      },
+      0x51 => {
+        // LD D,C
+        self.d = self.c;
+        4
+      },
+      0x52 => {
+        // LD D,D
+        // self.d = self.d;
+        4
+      },
+      0x53 => {
+        // LD D,E
+        self.d = self.e;
+        4
+      },
+      0x54 => {
+        // LD D,H
+        self.d = self.h;
+        4
+      },
+      0x55 => {
+        // LD D,L
+        self.d = self.l;
         4
       },
       0x56 => {
@@ -399,9 +494,34 @@ impl CPU {
         self.d = memory.read_byte(self.hl());
         8
       },
+      0x57 => {
+        // LD D,A
+        self.d = self.a;
+        4
+      },
+      0x58 => {
+        // LD E,B
+        self.e = self.b;
+        4
+      },
+      0x59 => {
+        // LD E,C
+        self.e = self.c;
+        4
+      },
       0x5a => {
         // LD E,D
         self.e = self.d;
+        4
+      },
+      0x5b => {
+        // LD E,E
+        // self.e = self.e;
+        4
+      },
+      0x5c => {
+        // LD E,H
+        self.e = self.h;
         4
       },
       0x5d => {
@@ -414,9 +534,79 @@ impl CPU {
         self.e = memory.read_byte(self.hl());
         8
       },
+      0x5f => {
+        // LD E,A
+        self.e = self.a;
+        4
+      },
+      0x60 => {
+        // LD H,B
+        self.h = self.b;
+        4
+      },
+      0x61 => {
+        // LD H,C
+        self.h = self.c;
+        4
+      },
       0x62 => {
         // LD H,D
         self.h = self.d;
+        4
+      },
+      0x63 => {
+        // LD H,E
+        self.h = self.e;
+        4
+      },
+      0x64 => {
+        // LD H,H
+        // self.h = self.h;
+        4
+      },
+      0x65 => {
+        // LD H,L
+        self.h = self.l;
+        4
+      },
+      0x67 => {
+        // LD H,A
+        self.h = self.a;
+        4
+      },
+      0x68 => {
+        // LD L,B
+        self.l = self.b;
+        4
+      },
+      0x69 => {
+        // LD L,C
+        self.l = self.c;
+        4
+      },
+      0x6a => {
+        // LD L,D
+        self.l = self.d;
+        4
+      },
+      0x6b => {
+        // LD L,E
+        self.l = self.e;
+        4
+      },
+      0x6c => {
+        // LD L,H
+        self.l = self.h;
+        4
+      },
+      0x6d => {
+        // LD L,L
+        // self.l = self.l;
+        4
+      },
+      0x6f => {
+        // LD L,A
+        self.l = self.a;
         4
       },
       0x77 => {
@@ -429,6 +619,10 @@ impl CPU {
         self.a = self.b;
         4
       },
+      0x79 => {
+        // LD A,C
+        self.a = self.c;
+        4
       0x7a => {
         // LD A,D
         self.a = self.d;
@@ -440,7 +634,7 @@ impl CPU {
         4
       },
       0x7c => {
-        // LD A, H
+        // LD A,H
         self.a = self.h;
         4
       },
