@@ -584,9 +584,10 @@ impl CPU {
         16
       },
       0xcd => {
+        // CALL a16
+        let target = self.read_short_immediate(memory);
         let pc = self.program_counter;
         self.push_short(memory, pc);
-        let target = memory.read_short(self.program_counter);
         self.program_counter = target;
         24
       },
@@ -647,7 +648,7 @@ impl CPU {
         16
       },
       0xe9 => {
-        // JP (HL)
+        // JP HL
         self.program_counter = self.hl();
         4
       },
