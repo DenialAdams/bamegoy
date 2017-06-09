@@ -40,6 +40,7 @@ pub struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
+  transition_enable_interrupts: bool,
   interrupts: bool // IME
 }
 
@@ -56,6 +57,7 @@ impl CPU {
       l: 0x4d,
       stack_pointer: 0xfffe,
       program_counter: 0x100,
+      transition_enable_interrupts: false,
       interrupts: true
     }
   }
@@ -98,6 +100,11 @@ impl CPU {
           self.interrupts = false;
           return 80;
         }
+      }
+
+      if self.transition_enable_interrupts {
+        self.transition_enable_interrupts = false;
+        self.interrupts = true;
       }
     }
     // Fetch
@@ -290,6 +297,11 @@ impl CPU {
       0x2d => {
         // DEC L
         dec_r8(&mut self.l, &mut self.f)
+      },
+      0x2f => {
+        // CPL A
+        self.a = !self.a;
+        4
       },
       0x31 => {
         // LD SP,d16
@@ -696,6 +708,11 @@ impl CPU {
         let addr = self.read_short_immediate(memory);
         self.a = memory.read_byte(addr);
         16
+      },
+      0xfb => {
+        // EI
+        self.transition_enable_interrupts = true;
+        4
       },
       0xfe => {
         // CP n
