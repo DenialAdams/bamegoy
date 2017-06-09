@@ -301,6 +301,8 @@ impl CPU {
       0x2f => {
         // CPL A
         self.a = !self.a;
+        self.f.insert(SUBTRACT);
+        self.f.insert(HALF_CARRY);
         4
       },
       0x31 => {
@@ -609,6 +611,12 @@ impl CPU {
         self.program_counter = dest;
         16
       },
+      0xcb => {
+        // CB
+        let next_opcode = self.read_byte_immediate(memory);
+        // TODO: is this 4 plus right? starting to think not
+        4 + self.cb(next_opcode)
+      },
       0xd5 => {
         // PUSH DE
         let d = self.d;
@@ -729,6 +737,23 @@ impl CPU {
         self.push_short(memory, pc);
         self.program_counter = 0x0038;
         16
+      },
+      _ => {
+        unimplemented!()
+      }
+    }
+  }
+
+  fn cb(&mut self, opcode: u8) -> i64 {
+    println!("cb {:02x}", opcode);
+    match opcode {
+      0x37 => {
+        // SWAP A
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        8
       },
       _ => {
         unimplemented!()
