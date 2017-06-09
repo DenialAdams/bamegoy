@@ -3,11 +3,30 @@ use util::LoHi;
 
 bitflags! {
   struct Flags: u8 {
-    const ZERO =       0b10000000;
-    const SUBTRACT =   0b01000000;
+    const ZERO       = 0b10000000;
+    const SUBTRACT   = 0b01000000;
     const HALF_CARRY = 0b00100000;
-    const CARRY =      0b00010000;
+    const CARRY      = 0b00010000;
   }
+}
+
+// FFFF & FF0F
+bitflags! {
+  struct InterruptFlags: u8 {
+    const JOYPAD   = 0b00010000;
+    const SERIAL   = 0b00001000;
+    const TIMER    = 0b00000100;
+    const LCD_STAT = 0b00000010;
+    const VBLANK   = 0b00000001;
+  }
+}
+
+enum Interrupt {
+  VBlank  = 0x0040,
+  LCDStat = 0x0048,
+  Timer   = 0x0050,
+  Serial  = 0x0058,
+  Joypad  = 0x0060
 }
 
 pub struct CPU {
@@ -21,6 +40,7 @@ pub struct CPU {
   l: u8,
   stack_pointer: u16,
   program_counter: u16,
+  transition_enable_interrupts: bool,
   interrupts: bool // IME
 }
 
@@ -37,11 +57,56 @@ impl CPU {
       l: 0x4d,
       stack_pointer: 0xfffe,
       program_counter: 0x100,
+      transition_enable_interrupts: false,
       interrupts: true
     }
   }
 
-  pub fn step(&mut self, memory: &mut Memory) -> i64 {
+  pub fn step(&mut self, memory: &mut Memory) -> i64 {    
+    // Interrupts
+    {
+      let mut active_interrupt: Option<Interrupt> = None;
+
+      let mut ifs = InterruptFlags::from_bits_truncate(memory.read_byte(0xff0f));
+      let ies = InterruptFlags::from_bits_truncate(memory.read_byte(0xffff));
+
+      if ifs.contains(VBLANK) && ies.contains(VBLANK) {
+        active_interrupt = Some(Interrupt::VBlank);
+        ifs.remove(VBLANK);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(LCD_STAT) && ies.contains(LCD_STAT) {
+        active_interrupt = Some(Interrupt::LCDStat);
+        ifs.remove(LCD_STAT);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(TIMER) && ies.contains(TIMER) {
+        active_interrupt = Some(Interrupt::Timer);
+        ifs.remove(TIMER);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(SERIAL) && ies.contains(SERIAL) {
+        active_interrupt = Some(Interrupt::Serial);
+        ifs.remove(SERIAL);
+        memory.write_byte(0xff0f, ifs.bits);
+      } else if ifs.contains(JOYPAD) && ies.contains(JOYPAD) {
+        active_interrupt = Some(Interrupt::Joypad);
+        ifs.remove(JOYPAD);
+        memory.write_byte(0xff0f, ifs.bits);
+      }
+
+      if self.interrupts {
+        if let Some(interrupt) = active_interrupt {
+          let pc = self.program_counter;
+          self.push_short(memory, pc);
+          self.program_counter = interrupt as u16;
+          self.interrupts = false;
+          return 80;
+        }
+      }
+
+      if self.transition_enable_interrupts {
+        self.transition_enable_interrupts = false;
+        self.interrupts = true;
+      }
+    }
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
     println!("{:02x} at address {:04x}", opcode, self.program_counter);
@@ -232,6 +297,13 @@ impl CPU {
       0x2d => {
         // DEC L
         dec_r8(&mut self.l, &mut self.f)
+      },
+      0x2f => {
+        // CPL A
+        self.a = !self.a;
+        self.f.insert(SUBTRACT);
+        self.f.insert(HALF_CARRY);
+        4
       },
       0x31 => {
         // LD SP,d16
@@ -526,9 +598,10 @@ impl CPU {
         16
       },
       0xcd => {
+        // CALL a16
+        let target = self.read_short_immediate(memory);
         let pc = self.program_counter;
         self.push_short(memory, pc);
-        let target = memory.read_short(self.program_counter);
         self.program_counter = target;
         24
       },
@@ -537,6 +610,12 @@ impl CPU {
         let dest = self.pop_short(memory);
         self.program_counter = dest;
         16
+      },
+      0xcb => {
+        // CB
+        let next_opcode = self.read_byte_immediate(memory);
+        // TODO: is this 4 plus right? starting to think not
+        4 + self.cb(next_opcode)
       },
       0xd5 => {
         // PUSH DE
@@ -589,7 +668,7 @@ impl CPU {
         16
       },
       0xe9 => {
-        // JP (HL)
+        // JP HL
         self.program_counter = self.hl();
         4
       },
@@ -638,6 +717,11 @@ impl CPU {
         self.a = memory.read_byte(addr);
         16
       },
+      0xfb => {
+        // EI
+        self.transition_enable_interrupts = true;
+        4
+      },
       0xfe => {
         // CP n
         let value = self.read_byte_immediate(memory);
@@ -653,6 +737,23 @@ impl CPU {
         self.push_short(memory, pc);
         self.program_counter = 0x0038;
         16
+      },
+      _ => {
+        unimplemented!()
+      }
+    }
+  }
+
+  fn cb(&mut self, opcode: u8) -> i64 {
+    println!("cb {:02x}", opcode);
+    match opcode {
+      0x37 => {
+        // SWAP A
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        8
       },
       _ => {
         unimplemented!()
@@ -747,20 +848,20 @@ fn dec_r8(register: &mut u8, flags: &mut Flags) -> i64 {
   4
 }
 
-fn inc_double_r8(hiReg: &mut u8, loReg: &mut u8) -> i64 {
+fn inc_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) -> i64 {
   // INC 16-bit register (formed by two 8-bit registers)
-  let combined = (*hiReg as u16) << 8 | *loReg as u16;
+  let combined = (*hi_reg as u16) << 8 | *lo_reg as u16;
   let val = combined.wrapping_add(1);
-  *hiReg = val.hi();
-  *loReg = val.lo();
+  *hi_reg = val.hi();
+  *lo_reg = val.lo();
   8
 }
 
-fn dec_double_r8(hiReg: &mut u8, loReg: &mut u8) -> i64 {
+fn dec_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) -> i64 {
   // DEC 16-bit register (formed by two 8-bit registers)
-  let combined = (*hiReg as u16) << 8 | *loReg as u16;
+  let combined = (*hi_reg as u16) << 8 | *lo_reg as u16;
   let val = combined.wrapping_sub(1);
-  *hiReg = val.hi();
-  *loReg = val.lo();
+  *hi_reg = val.hi();
+  *lo_reg = val.lo();
   8
 }
