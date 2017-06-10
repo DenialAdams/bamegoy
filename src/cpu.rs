@@ -686,22 +686,13 @@ impl CPU {
       },
       0x83 => {
         // ADD A,E
-        let original = self.a;
-        self.a = self.a.wrapping_add(self.e);
-        self.f.set(ZERO, self.a == 0);
-        self.f.remove(SUBTRACT);
-        self.f.set(HALF_CARRY, (original ^ self.e ^ self.a) & 0x10 == 0x10);
-        self.f.set(CARRY, self.a < original);
+        add_d8(&mut self.a, self.e, &mut self.f);
         4
       },
       0x87 => {
         // ADD A,A
-        let original = self.a;
-        self.a = self.a.wrapping_add(self.a);
-        self.f.set(ZERO, self.a == 0);
-        self.f.remove(SUBTRACT);
-        self.f.set(HALF_CARRY, (0 ^ self.a) & 0x10 == 0x10);
-        self.f.set(CARRY, self.a < original);
+        let dup_a = self.a;
+        add_d8(&mut self.a, dup_a, &mut self.f);
         4
       },
       0x8e => {
@@ -850,6 +841,12 @@ impl CPU {
         self.push_byte(memory, c);
         16
       },
+      0xc6 => {
+        // ADD A,d8
+        let value = self.read_byte_immediate(memory);
+        add_d8(&mut self.a, value, &mut self.f);
+        8
+      },
       0xc8 => {
         // RET Z
         if self.f.contains(ZERO) {
@@ -892,8 +889,8 @@ impl CPU {
       },
       0xd1 => {
         // POP DE
-        let e = self.pop_byte(memory);
-        let d = self.pop_byte(memory);
+        self.e = self.pop_byte(memory);
+        self.d = self.pop_byte(memory);
         12
       },
       0xd5 => {
@@ -903,6 +900,17 @@ impl CPU {
         let e = self.e;
         self.push_byte(memory, e);
         16
+      },
+      0xd6 => {
+        // SUB d8
+        let orig = self.a;
+        let value = self.read_byte_immediate(memory);
+        self.a -= value;
+        self.f.set(ZERO, self.a == 0);
+        self.f.insert(SUBTRACT);
+        self.f.set(HALF_CARRY, (orig ^ !value ^ self.a & 0x10) == 0x10);
+        self.f.set(CARRY, self.a > orig);
+        8
       },
       0xe0 => {
         // LDH n,A
@@ -1045,7 +1053,7 @@ impl CPU {
       },
       0x87 => {
         // RES 0,A
-        self.a &= 0b1111111_0;
+        self.a &= 0b1111_1110;
         8
       },
       _ => {
@@ -1121,13 +1129,23 @@ impl CPU {
   }
 }
 
+fn add_d8(register: &mut u8, value: u8, flags: &mut Flags) {
+  // ADD value to an 8-bit register
+  let orig = *register;
+  *register = (*register).wrapping_add(value);
+  flags.set(ZERO, *register == 0);
+  flags.remove(SUBTRACT);
+  flags.set(HALF_CARRY, (orig ^ value ^ *register & 0x10) == 0x10);
+  flags.set(CARRY, *register < orig);
+}
+
 fn inc_r8(register: &mut u8, flags: &mut Flags) -> i64 {
   // INC 8-bit register
   let orig = *register;
   *register = (*register).wrapping_add(1);
-  (*flags).set(ZERO, *register == 0);
-  (*flags).remove(SUBTRACT);
-  (*flags).set(HALF_CARRY, (orig ^ 1 ^ *register & 0x10) == 0x10);
+  flags.set(ZERO, *register == 0);
+  flags.remove(SUBTRACT);
+  flags.set(HALF_CARRY, (orig ^ 1 ^ *register & 0x10) == 0x10);
   4
 }
 
@@ -1135,9 +1153,9 @@ fn dec_r8(register: &mut u8, flags: &mut Flags) -> i64 {
   // DEC 8-bit register
   let orig = *register;
   *register = (*register).wrapping_sub(1);
-  (*flags).set(ZERO, (*register) == 0);
-  (*flags).insert(SUBTRACT);
-  (*flags).set(HALF_CARRY, (orig ^ !1 ^ *register & 0x10) == 0x10);
+  flags.set(ZERO, (*register) == 0);
+  flags.insert(SUBTRACT);
+  flags.set(HALF_CARRY, (orig ^ !1 ^ *register & 0x10) == 0x10);
   4
 }
 
