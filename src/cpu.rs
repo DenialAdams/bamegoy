@@ -130,8 +130,7 @@ impl CPU {
       },
       0x02 => {
         // LD (BC),A
-        let value = memory.read_byte((self.b as u16) << 8 | self.c as u16);
-        self.a = value;
+        memory.write_byte((self.b as u16) << 8 | self.c as u16, self.a);
         8
       },
       0x03 => {
@@ -166,13 +165,24 @@ impl CPU {
       0x09 => {
         // ADD HL,BC
         let orig = self.hl();
-        let val = self.hl().wrapping_add(self.bc());
+        let bc = self.bc();
+        let val = self.hl().wrapping_add(bc);
         self.h = val.hi();
         self.l = val.lo();
-        let res = self.hl();
         self.f.remove(SUBTRACT);
-        self.f.set(HALF_CARRY, (orig ^ val ^ res) & 0x100 == 0x100);
-        self.f.set(CARRY, res < orig);
+        self.f.set(HALF_CARRY, (orig ^ bc ^ val) & 0x100 == 0x100);
+        self.f.set(CARRY, val < orig);
+        8
+      },
+      0x12 => {
+        // LD (DE),A
+        memory.write_byte((self.d as u16) << 8 | self.e as u16, self.a);
+        8
+      },
+      0x0a => {
+        // LD A,(BC)
+        let value = memory.read_byte((self.b as u16) << 8 | self.c as u16);
+        self.a = value;
         8
       },
       0x0b => {
@@ -221,6 +231,18 @@ impl CPU {
         let rel_target = self.read_signed_byte_immediate(memory);
         self.relative_jump(rel_target);
         12
+      },
+      0x19 => {
+        // ADD HL,DE
+        let orig = self.hl();
+        let de = self.de();
+        let val = self.hl().wrapping_add(de);
+        self.h = val.hi();
+        self.l = val.lo();
+        self.f.remove(SUBTRACT);
+        self.f.set(HALF_CARRY, (orig ^ de ^ val) & 0x100 == 0x100);
+        self.f.set(CARRY, val < orig);
+        8
       },
       0x1a => {
         // LD A,(DE)
@@ -828,6 +850,38 @@ impl CPU {
         self.push_byte(memory, c);
         16
       },
+      0xc8 => {
+        // RET Z
+        if self.f.contains(ZERO) {
+          let dest = self.pop_short(memory);
+          self.program_counter = dest;
+          20
+        } else {
+          8
+        }
+      },
+      0xc9 => {
+        // RET
+        let dest = self.pop_short(memory);
+        self.program_counter = dest;
+        16
+      },
+      0xca => {
+        // JP Z,a16
+        let target = self.read_short_immediate(memory);
+        if self.f.contains(ZERO) {
+          self.program_counter = target;
+          16
+        } else {
+          12
+        }
+      },
+      0xcb => {
+        // CB
+        // TODO we could make this more granular and return 4 immediately here, then execute instructions next step
+        let next_opcode = self.read_byte_immediate(memory);
+        self.cb(next_opcode)
+      },
       0xcd => {
         // CALL a16
         let target = self.read_short_immediate(memory);
@@ -836,17 +890,11 @@ impl CPU {
         self.program_counter = target;
         24
       },
-      0xc9 => {
-        // RET
-        let dest = self.pop_short(memory);
-        self.program_counter = dest;
-        16
-      },
-      0xcb => {
-        // CB
-        // TODO we could make this more granular and return 4 immediately here, then execute instructions next step
-        let next_opcode = self.read_byte_immediate(memory);
-        self.cb(next_opcode)
+      0xd1 => {
+        // POP DE
+        let e = self.pop_byte(memory);
+        let d = self.pop_byte(memory);
+        12
       },
       0xd5 => {
         // PUSH DE
@@ -899,7 +947,7 @@ impl CPU {
         16
       },
       0xe9 => {
-        // JP HL
+        // JP (HL)
         self.program_counter = self.hl();
         4
       },
@@ -983,7 +1031,7 @@ impl CPU {
   }
 
   fn cb(&mut self, opcode: u8) -> i64 {
-    println!("cb {:02x} ({}) ", opcode, CB_DEBUG[opcode as usize]);
+    println!("cb {:02x} ({})", opcode, CB_DEBUG[opcode as usize]);
     match opcode {
       0x37 => {
         // SWAP A
@@ -993,6 +1041,11 @@ impl CPU {
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.remove(CARRY);
+        8
+      },
+      0x87 => {
+        // RES 0,A
+        self.a &= 0b1111111_0;
         8
       },
       _ => {
