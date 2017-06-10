@@ -153,13 +153,11 @@ impl CPU {
       },
       0x07 => {
         // RLCA
-        let old_carry = (self.f.bits & CARRY.bits) >> 4; // 0 or 1
+        self.a = self.a.rotate_left(1);
         self.f.remove(ZERO);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
-        self.f.set(CARRY, (self.a & 0x80) == 0x80);
-        self.a <<= 1;
-        self.a |= old_carry;
+        self.f.set(CARRY, self.a & 0b0000_0001 == 1);
         4
       },
       0x09 => {
@@ -297,6 +295,11 @@ impl CPU {
       0x25 => {
         // DEC H
         dec_r8(&mut self.h, &mut self.f)
+      },
+      0x26 => {
+        // LD H,d8
+        self.h = self.read_byte_immediate(memory);
+        8
       },
       0x28 => {
         // JR Z,r8
@@ -449,6 +452,11 @@ impl CPU {
         self.b = self.l;
         4
       },
+      0x46 => {
+        // LD B,(HL)
+        self.b = memory.read_byte(self.hl());
+        8
+      },
       0x47 => {
         // LD B,A
         self.b = self.a;
@@ -483,6 +491,11 @@ impl CPU {
         // LD C,L
         self.c = self.l;
         4
+      },
+      0x4e => {
+        // LD C,(HL)
+        self.c = memory.read_byte(self.hl());
+        8
       },
       0x4f => {
         // LD C,A
@@ -686,13 +699,13 @@ impl CPU {
       },
       0x83 => {
         // ADD A,E
-        add_d8(&mut self.a, self.e, &mut self.f);
+        add_r8(&mut self.a, self.e, &mut self.f);
         4
       },
       0x87 => {
         // ADD A,A
         let dup_a = self.a;
-        add_d8(&mut self.a, dup_a, &mut self.f);
+        add_r8(&mut self.a, dup_a, &mut self.f);
         4
       },
       0x8e => {
@@ -762,8 +775,17 @@ impl CPU {
         self.f.remove(CARRY);
         4
       },
+      0xae => {
+        // XOR (HL)
+        self.a ^= memory.read_byte(self.hl());
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        8
+      },
       0xaf => {
-        // XOR A with A
+        // XOR A
         // self.a ^= self.a;
         self.a = 0;
         self.f.insert(ZERO);
@@ -790,6 +812,15 @@ impl CPU {
         self.f.remove(CARRY);
         4
       },
+      0xb7 => {
+        // OR A
+        // self.a |= self.a
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        4
+      }
       0xbd => {
         // CP L
         self.f.set(ZERO, self.a == self.l);
@@ -844,7 +875,7 @@ impl CPU {
       0xc6 => {
         // ADD A,d8
         let value = self.read_byte_immediate(memory);
-        add_d8(&mut self.a, value, &mut self.f);
+        add_r8(&mut self.a, value, &mut self.f);
         8
       },
       0xc8 => {
@@ -905,7 +936,7 @@ impl CPU {
         // SUB d8
         let orig = self.a;
         let value = self.read_byte_immediate(memory);
-        self.a -= value;
+        self.a = self.a.wrapping_sub(value);
         self.f.set(ZERO, self.a == 0);
         self.f.insert(SUBTRACT);
         self.f.set(HALF_CARRY, (orig ^ !value ^ self.a & 0x10) == 0x10);
@@ -1041,6 +1072,41 @@ impl CPU {
   fn cb(&mut self, opcode: u8) -> i64 {
     println!("cb {:02x} ({})", opcode, CB_DEBUG[opcode as usize]);
     match opcode {
+      0x18 => {
+        // RR B
+        rr_r8(&mut self.b, &mut self.f);
+        8
+      }
+      0x19 => {
+        // RR C
+        rr_r8(&mut self.c, &mut self.f);
+        8
+      },
+      0x1a => {
+        // RR D
+        rr_r8(&mut self.d, &mut self.f);
+        8
+      },
+      0x1b => {
+        // RR E
+        rr_r8(&mut self.e, &mut self.f);
+        8
+      },
+      0x1c => {
+        // RR H
+        rr_r8(&mut self.h, &mut self.f);
+        8
+      },
+      0x1d => {
+        // RR L
+        rr_r8(&mut self.l, &mut self.f);
+        8
+      },
+      0x1f => {
+        // RR A
+        rr_r8(&mut self.a, &mut self.f);
+        8
+      }
       0x37 => {
         // SWAP A
         let upper = self.a & 0xf0;
@@ -1049,6 +1115,16 @@ impl CPU {
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.remove(CARRY);
+        8
+      },
+      0x38 => {
+        // SRL B
+        let orig = self.b;
+        self.b >>= 1;
+        self.f.set(ZERO, self.b == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.set(CARRY, orig & 0b0000_0001 == 1);
         8
       },
       0x87 => {
@@ -1129,7 +1205,15 @@ impl CPU {
   }
 }
 
-fn add_d8(register: &mut u8, value: u8, flags: &mut Flags) {
+fn rr_r8(register: &mut u8, f: &mut Flags) {
+  *register = register.rotate_right(1);
+  f.set(ZERO, *register == 0);
+  f.remove(SUBTRACT);
+  f.remove(HALF_CARRY);
+  f.set(CARRY, *register & 0b1000_0000 == 0b1000_0000);
+}
+
+fn add_r8(register: &mut u8, value: u8, flags: &mut Flags) {
   // ADD value to an 8-bit register
   let orig = *register;
   *register = (*register).wrapping_add(value);
