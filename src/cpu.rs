@@ -21,6 +21,7 @@ bitflags! {
   }
 }
 
+#[derive(Debug)]
 enum Interrupt {
   VBlank  = 0x0040,
   LCDStat = 0x0048,
@@ -94,6 +95,7 @@ impl CPU {
 
       if self.interrupts {
         if let Some(interrupt) = active_interrupt {
+          println!("Dispatching {:?} interrupt", interrupt);
           let pc = self.program_counter;
           self.push_short(memory, pc);
           self.program_counter = interrupt as u16;
@@ -207,6 +209,11 @@ impl CPU {
       0x15 => {
         // DEC D
         dec_r8(&mut self.d, &mut self.f)
+      },
+      0x16 => {
+        // LD D,d8
+        self.d = self.read_byte_immediate(memory);
+        8
       },
       0x18 => {
         // JR
@@ -664,6 +671,16 @@ impl CPU {
         self.f.set(CARRY, self.a < original);
         4
       },
+      0x87 => {
+        // ADD A,A
+        let original = self.a;
+        self.a = self.a.wrapping_add(self.a);
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.set(HALF_CARRY, (0 ^ self.a) & 0x10 == 0x10);
+        self.f.set(CARRY, self.a < original);
+        4
+      },
       0x8e => {
         // ADC (HL)
         let original = self.a;
@@ -686,9 +703,18 @@ impl CPU {
         self.f.set(CARRY, self.a < original);
         4
       },
-      0xa2 => {
+      0xa1 => {
         // AND C
         self.a &= self.c;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.insert(HALF_CARRY);
+        self.f.remove(CARRY);
+        4
+      },
+      0xa2 => {
+        // AND D
+        self.a &= self.d;
         self.f.set(ZERO, self.a == 0);
         self.f.remove(SUBTRACT);
         self.f.insert(HALF_CARRY);
@@ -724,7 +750,7 @@ impl CPU {
       },
       0xaf => {
         // XOR A with A
-        //self.a ^= self.a;
+        // self.a ^= self.a;
         self.a = 0;
         self.f.insert(ZERO);
         self.f.remove(SUBTRACT);
@@ -732,9 +758,18 @@ impl CPU {
         self.f.remove(CARRY);
         4
       },
-      0xb1 => {
+      0xb0 => {
         // OR B
         self.a |= self.b;
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        4
+      },
+      0xb1 => {
+        // OR C
+        self.a |= self.c;
         self.f.set(ZERO, self.a == 0);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
@@ -809,8 +844,7 @@ impl CPU {
       0xcb => {
         // CB
         let next_opcode = self.read_byte_immediate(memory);
-        // TODO: is this 4 plus right? starting to think not
-        4 + self.cb(next_opcode)
+        self.cb(next_opcode)
       },
       0xd5 => {
         // PUSH DE
@@ -883,6 +917,13 @@ impl CPU {
         self.f.remove(CARRY);
         8
       },
+      0xef => {
+        // RST 28H
+        let pc = self.program_counter;
+        self.push_short(memory, pc);
+        self.program_counter = 0x0028;
+        16
+      },
       0xf0 => {
         // LDH A,n
         let offset = self.read_byte_immediate(memory);
@@ -927,7 +968,7 @@ impl CPU {
         8
       },
       0xff => {
-        // RST 38
+        // RST 38H
         let pc = self.program_counter;
         self.push_short(memory, pc);
         self.program_counter = 0x0038;
