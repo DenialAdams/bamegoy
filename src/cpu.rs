@@ -985,6 +985,8 @@ impl CPU {
     match opcode {
       0x37 => {
         // SWAP A
+        let upper = self.a & 0xf0;
+        self.a = (self.a << 4) | upper;
         self.f.set(ZERO, self.a == 0);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
