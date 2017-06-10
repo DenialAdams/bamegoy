@@ -623,6 +623,7 @@ impl CPU {
         // LD A,C
         self.a = self.c;
         4
+      },
       0x7a => {
         // LD A,D
         self.a = self.d;
