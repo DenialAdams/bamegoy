@@ -21,6 +21,7 @@ mod memory;
 mod rom;
 mod util;
 mod ppu;
+mod debug;
 
 widget_ids!(
     struct Ids {
