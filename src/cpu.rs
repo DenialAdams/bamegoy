@@ -1,4 +1,5 @@
 use memory::Memory;
+use debug::{CB_DEBUG, INSTRUCTION_DEBUG};
 use util::LoHi;
 
 bitflags! {
@@ -111,7 +112,7 @@ impl CPU {
     }
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
-    println!("{:02x} at address {:04x}", opcode, self.program_counter);
+    println!("{:02x} ({}) at address {:04x}", opcode, INSTRUCTION_DEBUG[opcode as usize], self.program_counter);
     assert!(self.program_counter <= 0x7FFF);
     // Increment
     self.program_counter = self.program_counter.wrapping_add(1);
@@ -843,6 +844,7 @@ impl CPU {
       },
       0xcb => {
         // CB
+        // TODO we could make this more granular and return 4 immediately here, then execute instructions next step
         let next_opcode = self.read_byte_immediate(memory);
         self.cb(next_opcode)
       },
@@ -981,7 +983,7 @@ impl CPU {
   }
 
   fn cb(&mut self, opcode: u8) -> i64 {
-    println!("cb {:02x}", opcode);
+    println!("cb {:02x} ({}) ", opcode, CB_DEBUG[opcode as usize]);
     match opcode {
       0x37 => {
         // SWAP A
