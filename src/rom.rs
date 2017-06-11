@@ -26,10 +26,12 @@ enum Cart {
   RomMBC5Rumble,
   RomMBC5RumbleSram,
   RomMBC5RumbleSramBatt,
-  PocketCamera,
-  BandaiTAMA5 = 0xFD,
-  HudsonHuC3 = 0xFE,
-  HudsonHuC1 = 0xFF
+  RomMBC6 = 0x20,
+  RomMBC7SensorRumbleRamBatt = 0x22
+  PocketCamera = 0xFC,
+  BandaiTAMA5
+  HudsonHuC3
+  HudsonHuC1
 }
 
 pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), io::Error> {
