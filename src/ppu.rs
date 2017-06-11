@@ -2,6 +2,7 @@ use memory::Memory;
 use image::{ImageBuffer, Rgba};
 use glium;
 use std::vec::Vec;
+use cpu::VBLANK;
 
 bitflags! {
     struct LCDC: u8 {
@@ -13,16 +14,6 @@ bitflags! {
         const SPRITE_SIZE       = 0b00000100;
         const SPRITES_ENABLED   = 0b00000010;
         const BG_ENABLED        = 0b00000001;
-    }
-}
-
-bitflags! {
-    struct IF: u8 {
-        const JOYPAD   = 0b00010000;
-        const SERIAL   = 0b00001000;
-        const TIMER    = 0b00000100;
-        const LCD_STAT = 0b00000010;
-        const VBLANK   = 0b00000001;
     }
 }
 

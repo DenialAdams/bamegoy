@@ -13,7 +13,7 @@ bitflags! {
 
 // FFFF & FF0F
 bitflags! {
-  struct InterruptFlags: u8 {
+  pub struct InterruptFlags: u8 {
     const JOYPAD   = 0b00010000;
     const SERIAL   = 0b00001000;
     const TIMER    = 0b00000100;
