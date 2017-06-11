@@ -152,12 +152,19 @@ impl CPU {
       },
       0x07 => {
         // RLCA
+        // TODO vs RLA?
         self.a = self.a.rotate_left(1);
         self.f.remove(ZERO);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.set(CARRY, self.a & 0b0000_0001 == 1);
         4
+      },
+      0x08 => {
+        // LD (a16),SP
+        let destination = self.read_short_immediate(memory);
+        memory.write_short(destination, self.stack_pointer);
+        20
       },
       0x09 => {
         // ADD HL,BC
@@ -171,14 +178,9 @@ impl CPU {
         self.f.set(CARRY, val < orig);
         8
       },
-      0x12 => {
-        // LD (DE),A
-        memory.write_byte((self.d as u16) << 8 | self.e as u16, self.a);
-        8
-      },
       0x0a => {
         // LD A,(BC)
-        let value = memory.read_byte((self.b as u16) << 8 | self.c as u16);
+        let value = memory.read_byte(self.bc());
         self.a = value;
         8
       },
@@ -216,6 +218,11 @@ impl CPU {
         self.d = self.read_byte_immediate(memory);
         12
       },
+      0x12 => {
+        // LD (DE),A
+        memory.write_byte((self.d as u16) << 8 | self.e as u16, self.a);
+        8
+      },
       0x13 => {
         // INC DE
         inc_double_r8(&mut self.d, &mut self.e)
@@ -232,6 +239,16 @@ impl CPU {
         // LD D,d8
         self.d = self.read_byte_immediate(memory);
         8
+      },
+      0x17 => {
+        // RLA
+        // TODO: vs RLCA?
+        self.a = self.a.rotate_left(1);
+        self.f.remove(ZERO);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.set(CARRY, self.a & 0b0000_0001 == 1);
+        4
       },
       0x18 => {
         // JR
@@ -267,6 +284,11 @@ impl CPU {
       0x1d => {
         // DEC E
         dec_r8(&mut self.e, &mut self.f)
+      },
+      0x1e => {
+        // LD E,d8
+        self.e = self.read_byte_immediate(memory);
+        8
       },
       0x1f => {
         // RRA
@@ -924,6 +946,11 @@ impl CPU {
         add_r8(&mut self.a, value, &mut self.f);
         8
       },
+      0xc7 => {
+        // RST 00H
+        self.rst(0x0000, memory);
+        16
+      },
       0xc8 => {
         // RET Z
         if self.f.contains(ZERO) {
@@ -968,6 +995,11 @@ impl CPU {
         adc_r8(&mut self.a, value, &mut self.f);
         8
       },
+      0xcf => {
+        // RST 08H
+        self.rst(0x0008, memory);
+        16
+      },
       0xd1 => {
         // POP DE
         self.e = self.pop_byte(memory);
@@ -1001,6 +1033,16 @@ impl CPU {
         self.f.set(HALF_CARRY, (orig ^ !value ^ self.a & 0x10) == 0x10);
         self.f.set(CARRY, self.a > orig);
         8
+      },
+      0xd7 => {
+        // RST 10H
+        self.rst(0x0010, memory);
+        16
+      },
+      0xdf => {
+        // RST 18H
+        self.rst(0x0018, memory);
+        16
       },
       0xe0 => {
         // LDH n,A
@@ -1039,9 +1081,7 @@ impl CPU {
       },
       0xe7 => {
         // RST 20H
-        let pc = self.program_counter;
-        self.push_short(memory, pc);
-        self.program_counter = 0x0020;
+        self.rst(0x0020, memory);
         16
       },
       0xe9 => {
@@ -1067,9 +1107,7 @@ impl CPU {
       },
       0xef => {
         // RST 28H
-        let pc = self.program_counter;
-        self.push_short(memory, pc);
-        self.program_counter = 0x0028;
+        self.rst(0x0028, memory);
         16
       },
       0xf0 => {
@@ -1095,6 +1133,11 @@ impl CPU {
         self.push_short(memory, af);
         16
       },
+      0xf7 => {
+        // RST 30H
+        self.rst(0x0030, memory);
+        16
+      },
       0xfa => {
         // LD A,(a16)
         let addr = self.read_short_immediate(memory);
@@ -1117,9 +1160,7 @@ impl CPU {
       },
       0xff => {
         // RST 38H
-        let pc = self.program_counter;
-        self.push_short(memory, pc);
-        self.program_counter = 0x0038;
+        self.rst(0x0038, memory);
         16
       },
       _ => {
@@ -1261,6 +1302,12 @@ impl CPU {
 
   fn de(&self) -> u16 {
     (self.d as u16) << 8 | self.e as u16
+  }
+
+  fn rst(&mut self, value: u16, memory: &mut Memory) {
+    let pc = self.program_counter;
+    self.push_short(memory, pc);
+    self.program_counter = value;
   }
 }
 
