@@ -134,15 +134,18 @@ impl CPU {
       },
       0x03 => {
         // INC BC
-        inc_double_r8(&mut self.b, &mut self.c)
+        inc_double_r8(&mut self.b, &mut self.c);
+        8
       },
       0x04 => {
         // INC B
-        inc_r8(&mut self.b, &mut self.f)
+        inc_r8(&mut self.b, &mut self.f);
+        4
       },
       0x05 => {
         // DEC B
-        dec_r8(&mut self.b, &mut self.f)
+        dec_r8(&mut self.b, &mut self.f);
+        4
       },
       0x06 => {
         // LD n into B
@@ -186,15 +189,18 @@ impl CPU {
       },
       0x0b => {
         // DEC BC
-        dec_double_r8(&mut self.b, &mut self.c)
+        dec_double_r8(&mut self.b, &mut self.c);
+        8
       },
       0x0c => {
         // INC C
-        inc_r8(&mut self.c, &mut self.f)
+        inc_r8(&mut self.c, &mut self.f);
+        4
       },
       0x0d => {
         // DEC C
-        dec_r8(&mut self.c, &mut self.f)
+        dec_r8(&mut self.c, &mut self.f);
+        4
       },
       0x0e => {
         // LD n into C
@@ -225,15 +231,18 @@ impl CPU {
       },
       0x13 => {
         // INC DE
-        inc_double_r8(&mut self.d, &mut self.e)
+        inc_double_r8(&mut self.d, &mut self.e);
+        8
       },
       0x14 => {
         // INC D
-        inc_r8(&mut self.d, &mut self.f)
+        inc_r8(&mut self.d, &mut self.f);
+        4
       },
       0x15 => {
         // DEC D
-        dec_r8(&mut self.d, &mut self.f)
+        dec_r8(&mut self.d, &mut self.f);
+        4
       },
       0x16 => {
         // LD D,d8
@@ -275,15 +284,18 @@ impl CPU {
       },
       0x1b => {
         // DEC DE
-        dec_double_r8(&mut self.d, &mut self.e)
+        dec_double_r8(&mut self.d, &mut self.e);
+        8
       },
       0x1c => {
         // INC E
-        inc_r8(&mut self.e, &mut self.f)
+        inc_r8(&mut self.e, &mut self.f);
+        4
       },
       0x1d => {
         // DEC E
-        dec_r8(&mut self.e, &mut self.f)
+        dec_r8(&mut self.e, &mut self.f);
+        4
       },
       0x1e => {
         // LD E,d8
@@ -327,15 +339,18 @@ impl CPU {
       },
       0x23 => {
         // INC HL
-        inc_double_r8(&mut self.h, &mut self.l)
+        inc_double_r8(&mut self.h, &mut self.l);
+        8
       },
       0x24 => {
         // INC H
-        inc_r8(&mut self.h, &mut self.f)
+        inc_r8(&mut self.h, &mut self.f);
+        4
       },
       0x25 => {
         // DEC H
-        dec_r8(&mut self.h, &mut self.f)
+        dec_r8(&mut self.h, &mut self.f);
+        4
       },
       0x26 => {
         // LD H,d8
@@ -362,15 +377,18 @@ impl CPU {
       },
       0x2b => {
         // DEC HL
-        dec_double_r8(&mut self.h, &mut self.l)
+        dec_double_r8(&mut self.h, &mut self.l);
+        8
       },
       0x2c => {
         // INC L
-        inc_r8(&mut self.l, &mut self.f)
+        inc_r8(&mut self.l, &mut self.f);
+        4
       },
       0x2d => {
         // DEC L
-        dec_r8(&mut self.l, &mut self.f)
+        dec_r8(&mut self.l, &mut self.f);
+        4
       },
       0x2f => {
         // CPL A
@@ -461,11 +479,13 @@ impl CPU {
       },
       0x3c => {
         // INC A
-        inc_r8(&mut self.a, &mut self.f)
+        inc_r8(&mut self.a, &mut self.f);
+        4
       },
       0x3d => {
         // DEC A
-        dec_r8(&mut self.a, &mut self.f)
+        dec_r8(&mut self.a, &mut self.f);
+        4
       },
       0x3e => {
         // LD # into A
@@ -1339,40 +1359,36 @@ fn adc_r8(register: &mut u8, value: u8, f: &mut Flags) {
   f.set(CARRY, *register < original);
 }
 
-fn inc_r8(register: &mut u8, flags: &mut Flags) -> i64 {
+fn inc_r8(register: &mut u8, flags: &mut Flags) {
   // INC 8-bit register
   let orig = *register;
   *register = (*register).wrapping_add(1);
   flags.set(ZERO, *register == 0);
   flags.remove(SUBTRACT);
   flags.set(HALF_CARRY, (orig ^ 1 ^ *register & 0x10) == 0x10);
-  4
 }
 
-fn dec_r8(register: &mut u8, flags: &mut Flags) -> i64 {
+fn dec_r8(register: &mut u8, flags: &mut Flags) {
   // DEC 8-bit register
   let orig = *register;
   *register = (*register).wrapping_sub(1);
   flags.set(ZERO, (*register) == 0);
   flags.insert(SUBTRACT);
   flags.set(HALF_CARRY, (orig ^ !1 ^ *register & 0x10) == 0x10);
-  4
 }
 
-fn inc_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) -> i64 {
+fn inc_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) {
   // INC 16-bit register (formed by two 8-bit registers)
   let combined = (*hi_reg as u16) << 8 | *lo_reg as u16;
   let val = combined.wrapping_add(1);
   *hi_reg = val.hi();
   *lo_reg = val.lo();
-  8
 }
 
-fn dec_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) -> i64 {
+fn dec_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) {
   // DEC 16-bit register (formed by two 8-bit registers)
   let combined = (*hi_reg as u16) << 8 | *lo_reg as u16;
   let val = combined.wrapping_sub(1);
   *hi_reg = val.hi();
   *lo_reg = val.lo();
-  8
 }
