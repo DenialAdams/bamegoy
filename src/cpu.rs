@@ -1158,6 +1158,11 @@ impl CPU {
         self.rst(0x0030, memory);
         16
       },
+      0xf9 => {
+        // LD SP,HL
+        self.stack_pointer = self.hl();
+        8
+      },
       0xfa => {
         // LD A,(a16)
         let addr = self.read_short_immediate(memory);
