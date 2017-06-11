@@ -57,7 +57,7 @@ pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), RomError> {
   let cart_val = memory.read_byte(0x1047);
   let cart_type = Cart::from_u8(cart_val);
   if let Some(cart) = cart_type {
-    if cart != Cart::RomOnly {
+    if !is_supported(cart) {
       println!("ROM {:02x} not supported, but carrying on", cart_val);
     }
     Ok(())
@@ -73,3 +73,11 @@ fn do_load(memory: &mut Memory, path: &str) -> Result<(), io::Error> {
   file.read_exact(buf)
 }
 
+fn is_supported(cart: Cart) -> bool {
+  for x in SUPPORTED_CART_TYPES.iter() {
+    if cart == *x {
+      return true;
+    }
+  }
+  false
+}
