@@ -113,7 +113,6 @@ impl CPU {
     // Fetch
     let opcode: u8 = memory.read_byte(self.program_counter);
     println!("{:02x} ({}) at address {:04x}", opcode, INSTRUCTION_DEBUG[opcode as usize], self.program_counter);
-    assert!(self.program_counter <= 0x7FFF);
     // Increment
     self.program_counter = self.program_counter.wrapping_add(1);
     // Execute
@@ -201,6 +200,16 @@ impl CPU {
         self.c = value;
         8
       },
+      0x0f => {
+        // RRCA
+        // TODO this vs RRA?
+        self.a = self.a.rotate_right(1);
+        self.f.remove(ZERO);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.set(CARRY, self.a & 0b1000_0000 == 0b1000_0000);
+        4
+      },
       0x11 => {
         // LD DE,d16
         self.e = self.read_byte_immediate(memory);
@@ -258,6 +267,16 @@ impl CPU {
       0x1d => {
         // DEC E
         dec_r8(&mut self.e, &mut self.f)
+      },
+      0x1f => {
+        // RRA
+        // TODO this vs RRCA?
+        self.a = self.a.rotate_right(1);
+        self.f.remove(ZERO);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.set(CARRY, self.a & 0b1000_0000 == 0b1000_0000);
+        4
       },
       0x20 => {
         // JR NZ
@@ -337,6 +356,16 @@ impl CPU {
         self.f.insert(SUBTRACT);
         self.f.insert(HALF_CARRY);
         4
+      },
+      0x30 => {
+        // JR NC,r8
+        let rel_target = self.read_signed_byte_immediate(memory);
+        if !self.f.contains(CARRY) {
+          self.relative_jump(rel_target);
+          12
+        } else {
+          8
+        }
       },
       0x31 => {
         // LD SP,d16
@@ -652,6 +681,21 @@ impl CPU {
         self.l = self.a;
         4
       },
+      0x70 => {
+        // LD (HL),B
+        memory.write_byte(self.hl(), self.b);
+        8
+      },
+      0x71 => {
+        // LD (HL),C
+        memory.write_byte(self.hl(), self.c);
+        8
+      },
+      0x72 => {
+        // LD (HL),D
+        memory.write_byte(self.hl(), self.d);
+        8
+      },
       0x77 => {
         // LD (HL),A
         memory.write_byte(self.hl(), self.a);
@@ -709,14 +753,9 @@ impl CPU {
         4
       },
       0x8e => {
-        // ADC (HL)
-        let original = self.a;
-        let value = memory.read_byte(self.hl()).wrapping_add((self.f.bits & CARRY.bits) >> 4);
-        self.a = self.a.wrapping_add(value);
-        self.f.set(ZERO, self.a == 0);
-        self.f.remove(SUBTRACT);
-        self.f.set(HALF_CARRY, (original ^ value ^ self.a) & 0x10 == 0x10);
-        self.f.set(CARRY, self.a < original);
+        // ADC A,(HL)
+        let value = memory.read_byte(self.hl());
+        adc_r8(&mut self.a, value, &mut self.f);
         8
       },
       0x99 => {
@@ -812,6 +851,15 @@ impl CPU {
         self.f.remove(CARRY);
         4
       },
+      0xb6 => {
+        // OR (HL)
+        self.a |= memory.read_byte(self.hl());
+        self.f.set(ZERO, self.a == 0);
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.remove(CARRY);
+        8
+      },
       0xb7 => {
         // OR A
         // self.a |= self.a
@@ -831,12 +879,10 @@ impl CPU {
       },
       0xc0 => {
         // RET NZ
-        let dest = self.pop_short(memory);
         if !self.f.contains(ZERO) {
-          self.program_counter = dest;
+          self.program_counter = self.pop_short(memory);
           20
         } else {
-          self.push_short(memory, dest);
           8
         }
       },
@@ -847,7 +893,7 @@ impl CPU {
         12
       },
       0xc3 => {
-        // JMP nn
+        // JP a16
         let target = memory.read_short(self.program_counter);
         self.program_counter = target;
         16
@@ -881,8 +927,7 @@ impl CPU {
       0xc8 => {
         // RET Z
         if self.f.contains(ZERO) {
-          let dest = self.pop_short(memory);
-          self.program_counter = dest;
+          self.program_counter = self.pop_short(memory);
           20
         } else {
           8
@@ -890,8 +935,7 @@ impl CPU {
       },
       0xc9 => {
         // RET
-        let dest = self.pop_short(memory);
-        self.program_counter = dest;
+        self.program_counter = self.pop_short(memory);
         16
       },
       0xca => {
@@ -918,11 +962,26 @@ impl CPU {
         self.program_counter = target;
         24
       },
+      0xce => {
+        // ADC A,d8
+        let value = self.read_byte_immediate(memory);
+        adc_r8(&mut self.a, value, &mut self.f);
+        8
+      },
       0xd1 => {
         // POP DE
         self.e = self.pop_byte(memory);
         self.d = self.pop_byte(memory);
         12
+      },
+      0xd0 => {
+        // RET NC
+        if !self.f.contains(CARRY) {
+          self.program_counter = self.pop_short(memory);
+          20
+        } else {
+          8
+        }
       },
       0xd5 => {
         // PUSH DE
@@ -1221,6 +1280,16 @@ fn add_r8(register: &mut u8, value: u8, flags: &mut Flags) {
   flags.remove(SUBTRACT);
   flags.set(HALF_CARRY, (orig ^ value ^ *register & 0x10) == 0x10);
   flags.set(CARRY, *register < orig);
+}
+
+fn adc_r8(register: &mut u8, value: u8, f: &mut Flags) {
+  let original = *register;
+  let value = value.wrapping_add((f.bits & CARRY.bits) >> 4);
+  *register = register.wrapping_add(value);
+  f.set(ZERO, *register == 0);
+  f.remove(SUBTRACT);
+  f.set(HALF_CARRY, (original ^ value ^ *register) & 0x10 == 0x10);
+  f.set(CARRY, *register < original);
 }
 
 fn inc_r8(register: &mut u8, flags: &mut Flags) -> i64 {
