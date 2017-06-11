@@ -27,13 +27,13 @@ struct Memory {
 */
 
 pub struct Memory {
-  pub memory: Box<[u8; 65536]>
+  pub memory: [u8; 65536]
 }
 
 impl Memory {
   pub fn new() -> Memory {
     Memory {
-      memory: Box::new(unsafe { std::mem::zeroed() })
+      memory: unsafe { std::mem::zeroed() }
     }
   }
 
