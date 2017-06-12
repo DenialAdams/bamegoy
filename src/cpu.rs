@@ -1456,6 +1456,41 @@ impl CPU {
   fn cb(&mut self, opcode: u8) -> i64 {
     println!("cb {:02x} ({})", opcode, CB_DEBUG[opcode as usize]);
     match opcode {
+      0x10 => {
+        // RL B
+        rl_r8(&mut self.b, &mut self.f);
+        8
+      },
+      0x11 => {
+        // RL C
+        rl_r8(&mut self.c, &mut self.f);
+        8
+      },
+      0x12 => {
+        // RL D
+        rl_r8(&mut self.d, &mut self.f);
+        8
+      },
+      0x13 => {
+        // RL E
+        rl_r8(&mut self.d, &mut self.f);
+        8
+      },
+      0x14 => {
+        // RL H
+        rl_r8(&mut self.h, &mut self.f);
+        8
+      },
+      0x15 => {
+        // RL L
+        rl_r8(&mut self.l, &mut self.f);
+        8
+      },
+      0x17 => {
+        // RL A
+        rl_r8(&mut self.a, &mut self.f);
+        8
+      },
       0x18 => {
         // RR B
         rr_r8(&mut self.b, &mut self.f);
@@ -1691,6 +1726,15 @@ fn rr_r8(register: &mut u8, f: &mut Flags) {
   f.remove(SUBTRACT);
   f.remove(HALF_CARRY);
   f.set(CARRY, *register & 0b1000_0000 == 0b1000_0000);
+}
+
+
+fn rl_r8(register: &mut u8, f: &mut Flags) {
+  *register = register.rotate_left(1);
+  f.set(ZERO, *register == 0);
+  f.remove(SUBTRACT);
+  f.remove(HALF_CARRY);
+  f.set(CARRY, *register & 0b0000_0001 == 0b0000_0001);
 }
 
 fn inc_r8(register: &mut u8, flags: &mut Flags) {
