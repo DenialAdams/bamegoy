@@ -1526,14 +1526,39 @@ impl CPU {
         rr_r8(&mut self.a, &mut self.f);
         8
       }
+      0x30 => {
+        // SWAP B
+        swap_r8(&mut self.b, &mut self.f);
+        8
+      }
+      0x31 => {
+        // SWAP C
+        swap_r8(&mut self.c, &mut self.f);
+        8
+      },
+      0x32 => {
+        // SWAP D
+        swap_r8(&mut self.d, &mut self.f);
+        8
+      },
+      0x33 => {
+        // SWAP E
+        swap_r8(&mut self.e, &mut self.f);
+        8
+      },
+      0x34 => {
+        // SWAP H
+        swap_r8(&mut self.h, &mut self.f);
+        8
+      },
+      0x35 => {
+        // SWAP L
+        swap_r8(&mut self.l, &mut self.f);
+        8
+      },
       0x37 => {
         // SWAP A
-        let upper = self.a & 0xf0;
-        self.a = (self.a << 4) | upper;
-        self.f.set(ZERO, self.a == 0);
-        self.f.remove(SUBTRACT);
-        self.f.remove(HALF_CARRY);
-        self.f.remove(CARRY);
+        swap_r8(&mut self.a, &mut self.f);
         8
       },
       0x38 => {
@@ -1735,6 +1760,15 @@ fn rl_r8(register: &mut u8, f: &mut Flags) {
   f.remove(SUBTRACT);
   f.remove(HALF_CARRY);
   f.set(CARRY, *register & 0b0000_0001 == 0b0000_0001);
+}
+
+fn swap_r8(register: &mut u8, f: &mut Flags) {
+  let upper = *register & 0xf0;
+  *register = (*register << 4) | upper;
+  f.set(ZERO, *register == 0);
+  f.remove(SUBTRACT);
+  f.remove(HALF_CARRY);
+  f.remove(CARRY);
 }
 
 fn inc_r8(register: &mut u8, flags: &mut Flags) {
