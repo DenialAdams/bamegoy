@@ -1907,9 +1907,284 @@ impl CPU {
         self.test_bit_at_r8(val, 7);
         8
       },
+      0x80 => {
+        // RES 0,B
+        self.b &= 0b1111_1110;
+        8
+      },
+      0x81 => {
+        // RES 0,C
+        self.c &= 0b1111_1110;
+        8
+      },
+      0x82 => {
+        // RES 0,D
+        self.d &= 0b1111_1110;
+        8
+      },
+      0x83 => {
+        // RES 0,E
+        self.e &= 0b1111_1110;
+        8
+      },
+      0x84 => {
+        // RES 0,H
+        self.h &= 0b1111_1110;
+        8
+      },
+      0x85 => {
+        // RES 0,L
+        self.l &= 0b1111_1110;
+        8
+      },
       0x87 => {
         // RES 0,A
         self.a &= 0b1111_1110;
+        8
+      },
+      0x88 => {
+        // RES 1,B
+        self.b &= 0b1111_1101;
+        8
+      },
+      0x89 => {
+        // RES 1,C
+        self.c &= 0b1111_1101;
+        8
+      },
+      0x8a => {
+        // RES 1,D
+        self.d &= 0b1111_1101;
+        8
+      },
+      0x8b => {
+        // RES 1,E
+        self.e &= 0b1111_1101;
+        8
+      },
+      0x8c => {
+        // RES 1,H
+        self.h &= 0b1111_1101;
+        8
+      },
+      0x8d => {
+        // RES 1,L
+        self.l &= 0b1111_1101;
+        8
+      },
+      0x8f => {
+        // RES 1,A
+        self.a &= 0b1111_1101;
+        8
+      },
+      0x90 => {
+        // RES 2,B
+        self.b &= 0b1111_1011;
+        8
+      },
+      0x91 => {
+        // RES 2,C
+        self.c &= 0b1111_1011;
+        8
+      },
+      0x92 => {
+        // RES 2,D
+        self.d &= 0b1111_1011;
+        8
+      },
+      0x93 => {
+        // RES 2,E
+        self.e &= 0b1111_1011;
+        8
+      },
+      0x94 => {
+        // RES 2,H
+        self.h &= 0b1111_1011;
+        8
+      },
+      0x95 => {
+        // RES 2,L
+        self.l &= 0b1111_1011;
+        8
+      },
+      0x97 => {
+        // RES 2,A
+        self.a &= 0b1111_1011;
+        8
+      },
+      0x98 => {
+        // RES 3,B
+        self.b &= 0b1111_0111;
+        8
+      },
+      0x99 => {
+        // RES 3,C
+        self.c &= 0b1111_0111;
+        8
+      },
+      0x9a => {
+        // RES 3,D
+        self.d &= 0b1111_0111;
+        8
+      },
+      0x9b => {
+        // RES 3,E
+        self.e &= 0b1111_0111;
+        8
+      },
+      0x9c => {
+        // RES 3,H
+        self.h &= 0b1111_0111;
+        8
+      },
+      0x9d => {
+        // RES 3,L
+        self.l &= 0b1111_0111;
+        8
+      },
+      0x9f => {
+        // RES 3,A
+        self.a &= 0b1111_0111;
+        8
+      },
+      0xa0 => {
+        // RES 4,B
+        self.b &= 0b1110_1111;
+        8
+      },
+      0xa1 => {
+        // RES 4,C
+        self.c &= 0b1110_1111;
+        8
+      },
+      0xa2 => {
+        // RES 4,D
+        self.d &= 0b1110_1111;
+        8
+      },
+      0xa3 => {
+        // RES 4,E
+        self.e &= 0b1110_1111;
+        8
+      },
+      0xa4 => {
+        // RES 4,H
+        self.h &= 0b1110_1111;
+        8
+      },
+      0xa5 => {
+        // RES 4,L
+        self.l &= 0b1110_1111;
+        8
+      },
+      0xa7 => {
+        // RES 4,A
+        self.a &= 0b1110_1111;
+        8
+      },
+      0xa8 => {
+        // RES 5,B
+        self.b &= 0b1101_1111;
+        8
+      },
+      0xa9 => {
+        // RES 5,C
+        self.b &= 0b1101_1111;
+        8
+      },
+      0xaa => {
+        // RES 5,D
+        self.d &= 0b1101_1111;
+        8
+      },
+      0xab => {
+        // RES 5,E
+        self.e &= 0b1101_1111;
+        8
+      },
+      0xac => {
+        // RES 5,H
+        self.h &= 0b1101_1111;
+        8
+      },
+      0xad => {
+        // RES 5,L
+        self.l &= 0b1101_1111;
+        8
+      },
+      0xaf => {
+        // RES 5,A
+        self.a &= 0b1101_1111;
+        8
+      },
+      0xb0 => {
+        // RES 6,B
+        self.b &= 0b1011_1111;
+        8
+      },
+      0xb1 => {
+        // RES 6,C
+        self.c &= 0b1011_1111;
+        8
+      },
+      0xb2 => {
+        // RES 6,D
+        self.d &= 0b1011_1111;
+        8
+      },
+      0xb3 => {
+        // RES 6,E
+        self.e &= 0b1011_1111;
+        8
+      },
+      0xb4 => {
+        // RES 6,H
+        self.h &= 0b1011_1111;
+        8
+      },
+      0xb5 => {
+        // RES 6,L
+        self.l &= 0b1011_1111;
+        8
+      },
+      0xb7 => {
+        // RES 6,A
+        self.a &= 0b1011_1111;
+        8
+      },
+      0xb8 => {
+        // RES 7,B
+        self.b &= 0b0111_1111;
+        8
+      },
+      0xb9 => {
+        // RES 7,C
+        self.c &= 0b0111_1111;
+        8
+      },
+      0xba => {
+        // RES 7,D
+        self.d &= 0b0111_1111;
+        8
+      },
+      0xbb => {
+        // RES 7,E
+        self.e &= 0b0111_1111;
+        8
+      },
+      0xbc => {
+        // RES 7,H
+        self.h &= 0b0111_1111;
+        8
+      },
+      0xbd => {
+        // RES 7,L
+        self.l &= 0b0111_1111;
+        8
+      },
+      0xbf => {
+        // RES 7,A
+        self.a &= 0b0111_1111;
         8
       },
       _ => {
@@ -2095,7 +2370,6 @@ fn rr_r8(register: &mut u8, f: &mut Flags) {
   f.remove(HALF_CARRY);
   f.set(CARRY, *register & 0b1000_0000 == 0b1000_0000);
 }
-
 
 fn rl_r8(register: &mut u8, f: &mut Flags) {
   *register = register.rotate_left(1);
