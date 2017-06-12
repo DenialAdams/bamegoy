@@ -1571,6 +1571,342 @@ impl CPU {
         self.f.set(CARRY, orig & 0b0000_0001 == 1);
         8
       },
+      0x40 => {
+        // BIT 0,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x41 => {
+        // BIT 0,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x42 => {
+        // BIT 0,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x43 => {
+        // BIT 0,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x44 => {
+        // BIT 0,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x45 => {
+        // BIT 0,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x47 => {
+        // BIT 0,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 0);
+        8
+      },
+      0x48 => {
+        // BIT 1,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x49 => {
+        // BIT 1,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x4a => {
+        // BIT 1,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x4b => {
+        // BIT 1,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x4c => {
+        // BIT 1,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x4d => {
+        // BIT 1,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x4f => {
+        // BIT 1,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 1);
+        8
+      },
+      0x50 => {
+        // BIT 2,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x51 => {
+        // BIT 2,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x52 => {
+        // BIT 2,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x53 => {
+        // BIT 2,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x54 => {
+        // BIT 2,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x55 => {
+        // BIT 2,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x57 => {
+        // BIT 2,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 2);
+        8
+      },
+      0x58 => {
+        // BIT 3,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x59 => {
+        // BIT 3,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x5a => {
+        // BIT 3,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x5b => {
+        // BIT 3,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x5c => {
+        // BIT 3,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x5d => {
+        // BIT 3,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x5f => {
+        // BIT 3,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 3);
+        8
+      },
+      0x60 => {
+        // BIT 4,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x61 => {
+        // BIT 4,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x62 => {
+        // BIT 4,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x63 => {
+        // BIT 4,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x64 => {
+        // BIT 4,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x65 => {
+        // BIT 4,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x67 => {
+        // BIT 4,A
+        let val = self.b;
+        self.test_bit_at_r8(val, 4);
+        8
+      },
+      0x68 => {
+        // BIT 5,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x69 => {
+        // BIT 5,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x6a => {
+        // BIT 5,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x6b => {
+        // BIT 5,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x6c => {
+        // BIT 5,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x6d => {
+        // BIT 5,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x6f => {
+        // BIT 5,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 5);
+        8
+      },
+      0x70 => {
+        // BIT 6,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x71 => {
+        // BIT 6,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x72 => {
+        // BIT 6,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x73 => {
+        // BIT 6,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x74 => {
+        // BIT 6,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x75 => {
+        // BIT 6,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x77 => {
+        // BIT 6,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 6);
+        8
+      },
+      0x78 => {
+        // BIT 7,B
+        let val = self.b;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
+      0x79 => {
+        // BIT 7,C
+        let val = self.c;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
+      0x7a => {
+        // BIT 7,D
+        let val = self.d;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
+      0x7b => {
+        // BIT 7,E
+        let val = self.e;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
+      0x7c => {
+        // BIT 7,H
+        let val = self.h;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
+      0x7d => {
+        // BIT 7,L
+        let val = self.l;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
+      0x7f => {
+        // BIT 7,A
+        let val = self.a;
+        self.test_bit_at_r8(val, 7);
+        8
+      },
       0x87 => {
         // RES 0,A
         self.a &= 0b1111_1110;
@@ -1742,6 +2078,13 @@ impl CPU {
     let pc = self.program_counter;
     self.push_short(memory, pc);
     self.program_counter = value;
+  }
+
+  fn test_bit_at_r8(&mut self, register: u8, at: u8) {
+    let val = (register & (1 << at)) >> at;
+    self.f.set(ZERO, val == 0);
+    self.f.remove(SUBTRACT);
+    self.f.insert(HALF_CARRY);
   }
 }
 
