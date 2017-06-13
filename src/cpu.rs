@@ -1107,8 +1107,8 @@ impl CPU {
       },
       0xaf => {
         // XOR A
-        let dup_a = self.a;
-        self.xor_r8(dup_a);
+        let val = self.a;
+        self.xor_r8(val);
         4
       },
       0xb0 => {
@@ -1301,6 +1301,7 @@ impl CPU {
       },
       0xcc => {
         // CALL Z,a16
+        let target = self.read_short_immediate(memory);
         if self.f.contains(ZERO) {
           let pc = self.program_counter;
           self.push_short(memory, pc);
@@ -1356,6 +1357,7 @@ impl CPU {
       },
       0xd4 => {
         // CALL NC,a16
+        let target = self.read_short_immediate(memory);
         if !self.f.contains(CARRY) {
           let pc = self.program_counter;
           self.push_short(memory, pc);
@@ -1375,13 +1377,8 @@ impl CPU {
       },
       0xd6 => {
         // SUB d8
-        let orig = self.a;
         let value = self.read_byte_immediate(memory);
-        self.a = self.a.wrapping_sub(value);
-        self.f.set(ZERO, self.a == 0);
-        self.f.insert(SUBTRACT);
-        self.f.set(HALF_CARRY, (orig ^ !value ^ self.a & 0x10) == 0x10);
-        self.f.set(CARRY, self.a > orig);
+        self.sub_r8(value);
         8
       },
       0xd7 => {
@@ -1417,6 +1414,7 @@ impl CPU {
       },
       0xdc => {
         // CALL C,a16
+        let target = self.read_short_immediate(memory);
         if self.f.contains(CARRY) {
           let pc = self.program_counter;
           self.push_short(memory, pc);
@@ -1425,6 +1423,12 @@ impl CPU {
         } else {
           12
         }
+      },
+      0xde => {
+        // SBC A,d8
+        let val = self.read_byte_immediate(memory);
+        self.sbc_r8(val);
+        8
       },
       0xdf => {
         // RST 18H
@@ -1459,11 +1463,7 @@ impl CPU {
       0xe6 => {
         // AND d8
         let val = self.read_byte_immediate(memory);
-        self.a &= val;
-        self.f.set(ZERO, self.a == 0);
-        self.f.remove(SUBTRACT);
-        self.f.insert(HALF_CARRY);
-        self.f.remove(CARRY);
+        self.and_r8(val);
         8
       },
       0xe7 => {
@@ -1496,11 +1496,7 @@ impl CPU {
       0xee => {
         // XOR d8
         let val = self.read_byte_immediate(memory);
-        self.a ^= val;
-        self.f.set(ZERO, self.a == 0);
-        self.f.remove(SUBTRACT);
-        self.f.remove(HALF_CARRY);
-        self.f.remove(CARRY);
+        self.xor_r8(val);
         8
       },
       0xef => {
@@ -1531,6 +1527,12 @@ impl CPU {
         self.push_short(memory, af);
         16
       },
+      0xf6 => {
+        // OR d8
+        let val = self.read_byte_immediate(memory);
+        self.or_r8(val);
+        8
+      },
       0xf7 => {
         // RST 30H
         self.rst(0x0030, memory);
@@ -1555,10 +1557,7 @@ impl CPU {
       0xfe => {
         // CP n
         let value = self.read_byte_immediate(memory);
-        self.f.set(ZERO, self.a == value);
-        self.f.insert(SUBTRACT);
-        self.f.set(HALF_CARRY, (self.a ^ value ^ self.a.wrapping_sub(value)) & 0x10 == 0x10);
-        self.f.set(CARRY, self.a > value);
+        self.cp_r8(value);
         8
       },
       0xff => {
