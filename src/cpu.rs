@@ -345,6 +345,25 @@ impl CPU {
         self.h = self.read_byte_immediate(memory);
         8
       },
+      0x27 => {
+        // DAA
+        let delta: u8 = 0;
+        if (self.a & 0x0F) > 0x9 || self.f.contains(HALF_CARRY) {
+          delta = 6;
+        }
+        if ((self.a & 0xF0) >> 4) > 0x9 || self.f.contains(CARRY) {
+          delta += 60;
+          self.f.insert(CARRY);
+        } else {
+          self.f.remove(CARRY); // TODO: confirm this, binjgb doesn't do this
+        }
+        if self.f.contains(SUBTRACT) {
+          self.a = self.a.wrapping_sub(delta);
+        } else {
+          self.a = self.a.wrapping_add(delta);
+        }
+        4
+      },
       0x28 => {
         // JR Z,r8
         let rel_target = self.read_signed_byte_immediate(memory);
