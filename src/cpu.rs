@@ -347,7 +347,7 @@ impl CPU {
       },
       0x27 => {
         // DAA
-        let delta: u8 = 0;
+        let mut delta: u8 = 0;
         if (self.a & 0x0F) > 0x9 || self.f.contains(HALF_CARRY) {
           delta = 6;
         }
