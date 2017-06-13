@@ -384,6 +384,11 @@ impl CPU {
         dec_r8(&mut self.l, &mut self.f);
         4
       },
+      0x2e => {
+        // LD L,d8
+        self.l = self.read_byte_immediate(memory);
+        8
+      }
       0x2f => {
         // CPL A
         self.a = !self.a;
@@ -448,6 +453,13 @@ impl CPU {
         memory.write_byte(destination, value);
         12
       },
+      0x37 => {
+        // SCF
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        self.f.insert(CARRY);
+        4
+      },
       0x38 => {
         // JR C,r8
         let rel_target = self.read_signed_byte_immediate(memory);
@@ -493,6 +505,14 @@ impl CPU {
         self.a = result;
         8
       },
+      0x3f => {
+        // CCF
+        self.f.remove(SUBTRACT);
+        self.f.remove(HALF_CARRY);
+        let toggle = !self.f.contains(CARRY);
+        self.f.set(CARRY, toggle);
+        4
+      }
       0x40 => {
         // LD B,B
         // self.b = self.b;
@@ -718,6 +738,11 @@ impl CPU {
         // self.l = self.l;
         4
       },
+      0x6e => {
+        // LD L,(HL)
+        self.l = memory.read_byte(self.hl());
+        8
+      },
       0x6f => {
         // LD L,A
         self.l = self.a;
@@ -736,6 +761,21 @@ impl CPU {
       0x72 => {
         // LD (HL),D
         memory.write_byte(self.hl(), self.d);
+        8
+      },
+      0x73 => {
+        // LD (HL),E
+        memory.write_byte(self.hl(), self.e);
+        8
+      },
+      0x74 => {
+        // LD (HL),H
+        memory.write_byte(self.hl(), self.h);
+        8
+      },
+      0x75 => {
+        // LD (HL),L
+        memory.write_byte(self.hl(), self.l);
         8
       },
       0x77 => {
@@ -1182,6 +1222,16 @@ impl CPU {
         self.b = self.pop_byte(memory);
         12
       },
+      0xc2 => {
+        // JP NZ,a16
+        let destination = self.read_short_immediate(memory);
+        if !self.f.contains(ZERO) {
+          self.program_counter = destination;
+          16
+        } else {
+          12
+        }
+      },
       0xc3 => {
         // JP a16
         let target = memory.read_short(self.program_counter);
@@ -1249,6 +1299,17 @@ impl CPU {
         let next_opcode = self.read_byte_immediate(memory);
         self.cb(next_opcode)
       },
+      0xcc => {
+        // CALL Z,a16
+        if self.f.contains(ZERO) {
+          let pc = self.program_counter;
+          self.push_short(memory, pc);
+          self.program_counter = target;
+          24
+        } else {
+          12
+        }
+      },
       0xcd => {
         // CALL a16
         let target = self.read_short_immediate(memory);
@@ -1268,12 +1329,6 @@ impl CPU {
         self.rst(0x0008, memory);
         16
       },
-      0xd1 => {
-        // POP DE
-        self.e = self.pop_byte(memory);
-        self.d = self.pop_byte(memory);
-        12
-      },
       0xd0 => {
         // RET NC
         if !self.f.contains(CARRY) {
@@ -1283,6 +1338,33 @@ impl CPU {
           8
         }
       },
+      0xd1 => {
+        // POP DE
+        self.e = self.pop_byte(memory);
+        self.d = self.pop_byte(memory);
+        12
+      },
+      0xd2 => {
+        // JP NC,a16
+        let destination = self.read_short_immediate(memory);
+        if !self.f.contains(CARRY) {
+          self.program_counter = destination;
+          16
+        } else {
+          12
+        }
+      },
+      0xd4 => {
+        // CALL NC,a16
+        if !self.f.contains(CARRY) {
+          let pc = self.program_counter;
+          self.push_short(memory, pc);
+          self.program_counter = target;
+          24
+        } else {
+          12
+        }
+      }
       0xd5 => {
         // PUSH DE
         let d = self.d;
@@ -1306,6 +1388,43 @@ impl CPU {
         // RST 10H
         self.rst(0x0010, memory);
         16
+      },
+      0xd8 => {
+        // RET C
+        if self.f.contains(CARRY) {
+          self.program_counter = self.pop_short(memory);
+          20
+        } else {
+          8
+        }
+      },
+      0xd9 => {
+        // RETI
+        self.program_counter = self.pop_short(memory);
+        // TODO: does this have a delay?
+        self.transition_enable_interrupts = true;
+        16
+      },
+      0xda => {
+        // JP C,a16
+        let destination = self.read_short_immediate(memory);
+        if self.f.contains(CARRY) {
+          self.program_counter = destination;
+          16
+        } else {
+          12
+        }
+      },
+      0xdc => {
+        // CALL C,a16
+        if self.f.contains(CARRY) {
+          let pc = self.program_counter;
+          self.push_short(memory, pc);
+          self.program_counter = target;
+          24
+        } else {
+          12
+        }
       },
       0xdf => {
         // RST 18H
