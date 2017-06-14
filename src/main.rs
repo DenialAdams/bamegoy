@@ -26,16 +26,17 @@ mod ppu;
 mod debug;
 
 widget_ids!(
-    struct Ids {
-        tabs, tab_game, tab_debugger, game_screen, background
-    }
+  struct Ids {
+    tabs, tab_game, tab_debugger, game_screen, background
+  }
 );
 
 fn main() {
+    let events_loop = glutin::EventsLoop::new();
     let display = glium::glutin::WindowBuilder::new()
     .with_title(option_env!("CARGO_PKG_NAME").unwrap_or("unknown"))
     .with_dimensions(800, 600)
-    .build_glium().unwrap();
+    .build_glium(&events_loop).unwrap();
 
     let mut ui = conrod::UiBuilder::new([800.0, 600.0]).build();
 
@@ -79,10 +80,7 @@ fn main() {
             }
 
             match event {
-                glutin::Event::Closed => break 'game,
-                glutin::Event::Resized(width, height) => {
-                    // Doo dad
-                }
+                glutin::Event::WindowEvent { event: glutin::WindowEvent::Closed, .. } => break 'game,
                 _ => (),
             }
         }

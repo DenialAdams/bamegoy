@@ -39,9 +39,20 @@ pub enum Cart {
   HudsonHuC1RamBatt
 } */
 
+pub struct MBC1Data {
+  current_bank: u8,
+  memory: [u8; 2097152],
+  mode: MBCMode
+}
+
+pub enum MBCMode {
+  Rom,
+  Ram
+}
+
 pub enum Cart {
   RomOnly,
-  MBC1([u8; 2097152])
+  MBC1(MBC1Data)
 }
 
 #[derive(Debug)]
@@ -68,9 +79,13 @@ pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), RomError> {
     },
     0x01 => {
       // MBC1
-      let mut buf: [u8; 2097152] = unsafe { std::mem::zeroed() };
+      let mut buf: [u8; 2097152] = [0; 2097152];
       file.read(&mut buf);
-      memory.cart = Cart::MBC1(buf);
+      memory.cart = Cart::MBC1(MBC1Data {
+        current_bank: 1,
+        memory: buf,
+        mode: MBCMode::Rom
+      });
       Ok(())
     },
     _ => {

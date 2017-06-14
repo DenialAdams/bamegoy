@@ -35,7 +35,7 @@ pub struct Memory {
 impl Memory {
   pub fn new() -> Memory {
     Memory {
-      memory: unsafe { std::mem::zeroed() },
+      memory: [0; 65536],
       cart: Cart::RomOnly
     }
   }
@@ -43,7 +43,26 @@ impl Memory {
   // @Performance Read and write can use unsafe operations to index
 
   pub fn write_byte(&mut self, address: u16, value: u8) {
-    self.memory[translate(address)] = value;
+    if address <= 0x7FFF {
+      match self.cart {
+        Cart::RomOnly => {
+          // Nothing
+        },
+        Cart::MBC1(ref mut data) => {
+          if address <= 0x1fff {
+            unimplemented!();
+          } else if address <= 0x3fff {
+            unimplemented!();
+          } else if address <= 0x5fff {
+            unimplemented!();
+          } else if address <= 0x7fff {
+            unimplemented!();
+          }
+        }
+      }
+    } else {
+      self.memory[translate(address)] = value;
+    }
   }
 
   pub fn write_short(&mut self, address: u16, value: u16) {
