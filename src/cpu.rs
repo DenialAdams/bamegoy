@@ -451,7 +451,7 @@ impl CPU {
         memory.write_byte(destination, value);
         self.f.set(ZERO, value == 0);
         self.f.remove(SUBTRACT);
-        self.f.set(HALF_CARRY, (orig ^ 1 ^ value & 0x10) == 0x10);
+        self.f.set(HALF_CARRY, value & 0x0f < orig & 0x0f);
         12
       },
       0x35 => {
@@ -462,7 +462,7 @@ impl CPU {
         memory.write_byte(destination, value);
         self.f.set(ZERO, value == 0);
         self.f.insert(SUBTRACT);
-        self.f.set(HALF_CARRY, (orig ^ !1 ^ value & 0x10) == 0x10);
+        self.f.set(HALF_CARRY, value & 0x0f > orig & 0x0f);
         12
       },
       0x36 => {
@@ -1497,7 +1497,7 @@ impl CPU {
         self.stack_pointer = self.stack_pointer.wrapping_add(val as u16);
         self.f.remove(ZERO);
         self.f.remove(SUBTRACT);
-        self.f.set(HALF_CARRY, (orig ^ val as u16 ^ self.stack_pointer) & 0x100 == 0x100);
+        self.f.set(HALF_CARRY, self.stack_pointer & 0xff < orig & 0xff);
         self.f.set(CARRY, self.stack_pointer < orig);
         16
       },
@@ -2666,7 +2666,7 @@ impl CPU {
     self.a = self.a.wrapping_add(value);
     self.f.set(ZERO, self.a == 0);
     self.f.remove(SUBTRACT);
-    self.f.set(HALF_CARRY, (orig ^ value ^ self.a) & 0x10 == 0x10);
+    self.f.set(HALF_CARRY, self.a & 0x0f < orig & 0x0f);
     self.f.set(CARRY, self.a < orig);
   }
   
@@ -2677,7 +2677,7 @@ impl CPU {
     self.a = self.a.wrapping_add(value);
     self.f.set(ZERO, self.a == 0);
     self.f.remove(SUBTRACT);
-    self.f.set(HALF_CARRY, (orig ^ value ^ self.a) & 0x10 == 0x10);
+    self.f.set(HALF_CARRY, self.a & 0x0f < orig & 0x0f);
     self.f.set(CARRY, self.a < orig);
   }
 
@@ -2687,7 +2687,7 @@ impl CPU {
     self.a = self.a.wrapping_sub(value);
     self.f.set(ZERO, self.a == 0);
     self.f.insert(SUBTRACT);
-    self.f.set(HALF_CARRY, (orig ^ !value ^ self.a) & 0x10 == 0x10);
+    self.f.set(HALF_CARRY, self.a & 0x0f > orig & 0x0f);
     self.f.set(CARRY, self.a > orig);
   }
 
@@ -2698,7 +2698,7 @@ impl CPU {
     self.a = self.a.wrapping_sub(value);
     self.f.set(ZERO, self.a == 0);
     self.f.insert(SUBTRACT);
-    self.f.set(HALF_CARRY, (orig ^ !value ^ self.a) & 0x10 == 0x10);
+    self.f.set(HALF_CARRY, self.a & 0x0f > orig & 0x0f);
     self.f.set(CARRY, self.a > orig);
   }
 
@@ -2734,7 +2734,7 @@ impl CPU {
     let result = self.a - value;
     self.f.set(ZERO, result == 0);
     self.f.insert(SUBTRACT);
-    self.f.set(HALF_CARRY, (result ^ !value ^ self.a) & 0x10 == 0x10);
+    self.f.set(HALF_CARRY, result & 0x0f > self.a & 0x0f);
     self.f.set(CARRY, result < self.a);
   }
 
@@ -2746,7 +2746,7 @@ impl CPU {
     self.l = val.lo();
     let res = self.hl();
     self.f.remove(SUBTRACT);
-    self.f.set(HALF_CARRY, (orig ^ val ^ res) & 0x100 == 0x100);
+    self.f.set(HALF_CARRY, val & 0xff < orig & 0xff);
     self.f.set(CARRY, res < orig);
   }
 
@@ -2811,7 +2811,7 @@ fn inc_r8(register: &mut u8, flags: &mut Flags) {
   *register = (*register).wrapping_add(1);
   flags.set(ZERO, *register == 0);
   flags.remove(SUBTRACT);
-  flags.set(HALF_CARRY, (orig ^ 1 ^ *register & 0x10) == 0x10);
+  flags.set(HALF_CARRY, *register & 0x0f < orig & 0x0f);
 }
 
 fn dec_r8(register: &mut u8, flags: &mut Flags) {
@@ -2820,7 +2820,7 @@ fn dec_r8(register: &mut u8, flags: &mut Flags) {
   *register = (*register).wrapping_sub(1);
   flags.set(ZERO, (*register) == 0);
   flags.insert(SUBTRACT);
-  flags.set(HALF_CARRY, (orig ^ !1 ^ *register & 0x10) == 0x10);
+  flags.set(HALF_CARRY, *register & 0x0f > orig & 0x0f);
 }
 
 fn inc_double_r8(hi_reg: &mut u8, lo_reg: &mut u8) {
