@@ -2744,10 +2744,9 @@ impl CPU {
     let val = self.hl().wrapping_add(register);
     self.h = val.hi();
     self.l = val.lo();
-    let res = self.hl();
     self.f.remove(SUBTRACT);
     self.f.set(HALF_CARRY, val & 0xff < orig & 0xff);
-    self.f.set(CARRY, res < orig);
+    self.f.set(CARRY, val < orig);
   }
 
   fn hl(&self) -> u16 {
