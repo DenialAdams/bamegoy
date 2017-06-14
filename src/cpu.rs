@@ -2688,7 +2688,7 @@ impl CPU {
     self.f.set(ZERO, self.a == 0);
     self.f.insert(SUBTRACT);
     self.f.set(HALF_CARRY, (orig ^ !value ^ self.a) & 0x10 == 0x10);
-    self.f.set(CARRY, self.a < orig);
+    self.f.set(CARRY, self.a > orig);
   }
 
   fn sbc_r8(&mut self, value: u8) {
@@ -2699,7 +2699,7 @@ impl CPU {
     self.f.set(ZERO, self.a == 0);
     self.f.insert(SUBTRACT);
     self.f.set(HALF_CARRY, (orig ^ !value ^ self.a) & 0x10 == 0x10);
-    self.f.set(CARRY, self.a < orig);
+    self.f.set(CARRY, self.a > orig);
   }
 
   fn and_r8(&mut self, value: u8) {
