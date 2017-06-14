@@ -1,5 +1,6 @@
 use std;
 use util::LoHi;
+use rom::Cart;
 
 /* 
 Helpful reference!
@@ -27,13 +28,15 @@ struct Memory {
 */
 
 pub struct Memory {
-  pub memory: [u8; 65536]
+  pub memory: [u8; 65536],
+  pub cart: Cart
 }
 
 impl Memory {
   pub fn new() -> Memory {
     Memory {
-      memory: unsafe { std::mem::zeroed() }
+      memory: unsafe { std::mem::zeroed() },
+      cart: Cart::RomOnly
     }
   }
 
@@ -47,8 +50,8 @@ impl Memory {
     // This is basically un-needed because rust does this in debug mode already
     // but I just want to remind myself
     debug_assert!(address != 65535);
-    self.memory[translate(address)] = value.lo();
-    self.memory[translate(address + 1)] = value.hi();
+    self.write_byte(address, value.lo());
+    self.write_byte(address + 1, value.hi());
   }
 
   pub fn read_byte(&self, address: u16) -> u8 {
