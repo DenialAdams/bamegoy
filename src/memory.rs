@@ -28,6 +28,7 @@ struct Memory {
 */
 
 pub struct Memory {
+  // This is wasteful... ROM Bank memory is duplicated. Should probably split this up TODO
   pub memory: [u8; 65536],
   pub cart: Cart
 }
@@ -36,7 +37,7 @@ impl Memory {
   pub fn new() -> Memory {
     Memory {
       memory: [0; 65536],
-      cart: Cart::RomOnly
+      cart: { std::mem::uninitialized() }
     }
   }
 
@@ -45,7 +46,7 @@ impl Memory {
   pub fn write_byte(&mut self, address: u16, value: u8) {
     if address <= 0x7FFF {
       match self.cart {
-        Cart::RomOnly => {
+        Cart::RomOnly(_) => {
           // Nothing
         },
         Cart::MBC1(ref mut data) => {
@@ -74,7 +75,16 @@ impl Memory {
   }
 
   pub fn read_byte(&self, address: u16) -> u8 {
-    if address >= 0xFEA0 && address <= 0xFEFF {
+    if address <= 0x7fff && address >= 0x4000 {
+      match self.cart {
+        Cart::RomOnly(ref mut data) => {
+          data[address as usize - 0x4000]
+        },
+        Cart::MBC1(ref mut data) => {
+          unimplemented!()
+        }
+      }
+    } else if address >= 0xFEA0 && address <= 0xFEFF {
       0xff
     } else if address == 0xFF0F {
       0b11100000 | self.memory[0xff0f]

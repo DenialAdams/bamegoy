@@ -9,8 +9,6 @@ extern crate log_panics;
 #[macro_use]
 extern crate bitflags;
 extern crate image;
-#[macro_use]
-extern crate enum_primitive;
 
 use glium::DisplayBuild;
 use glium::Surface;

@@ -40,7 +40,7 @@ pub enum Cart {
 } */
 
 pub struct MBC1Data {
-  current_bank: u8,
+  cur_bank: u8,
   memory: [u8; 2097152],
   mode: MBCMode
 }
@@ -51,7 +51,7 @@ pub enum MBCMode {
 }
 
 pub enum Cart {
-  RomOnly,
+  RomOnly([u8; 16384]),
   MBC1(MBC1Data)
 }
 
@@ -74,7 +74,9 @@ pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), RomError> {
   match cart_val {
     0x00 => {
       // RomOnly
-      // Nothing needed
+      let mut buf: [u8; 16384] = [0; 16384];
+      file.read(&mut buf);
+      memory.cart = Cart::RomOnly(buf);
       Ok(())
     },
     0x01 => {
@@ -82,7 +84,7 @@ pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), RomError> {
       let mut buf: [u8; 2097152] = [0; 2097152];
       file.read(&mut buf);
       memory.cart = Cart::MBC1(MBC1Data {
-        current_bank: 1,
+        cur_bank: 1,
         memory: buf,
         mode: MBCMode::Rom
       });
@@ -96,6 +98,6 @@ pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), RomError> {
 }
 
 fn do_load(memory: &mut Memory, file: &mut File) -> Result<(), io::Error> {
-  let buf = &mut memory.memory[0..0x8000];
+  let buf = &mut memory.memory[0..0x4000];
   file.read_exact(buf)
 }
