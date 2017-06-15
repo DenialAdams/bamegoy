@@ -80,10 +80,10 @@ impl Memory {
   pub fn read_byte(&self, address: u16) -> u8 {
     if address <= 0x7fff && address >= 0x4000 {
       match self.cart {
-        Cart::RomOnly(ref mut data) => {
+        Cart::RomOnly(ref data) => {
           data[address as usize - 0x4000]
         },
-        Cart::MBC1(ref mut data) => {
+        Cart::MBC1(ref data) => {
           match data.mode {
             MBCMode::Rom => {
               data.memory[(data.bank_hi | data.bank_lo) as usize * 16384 + (address as usize - 0x4000)]

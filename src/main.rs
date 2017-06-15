@@ -56,6 +56,7 @@ fn main() {
     let mut last_time = Instant::now();
     let mut cpu_acc = 0;
     let mut ppu_acc = 0;
+
     let game_screen = {
         let draw_results = ppu.draw(&memory);
         let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
@@ -94,39 +95,39 @@ fn main() {
                 cpu_acc -= cpu.step(&mut memory) * 238;
                 did_something = true;
             }
-            if ppu_acc > ppu.estimate_clock_cycles() as i64 * 238 {
+            if ppu_acc > ppu.estimate_clock_cycles() * 238 {
                 ppu_acc -= ppu.step(&mut memory) * 238;
                 did_something = true;
             }
         }
-        while ppu_acc > ppu.estimate_clock_cycles() * 238 {
-            
-        }
-        let draw_results = ppu.draw(&memory);
-        let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
-        let _ = image_map.replace(game_screen, texture);
-        ui.needs_redraw();
 
-        // Instantiate all widgets in the GUI.
         {
-            let ui = &mut ui.set_widgets();
+          let draw_results = ppu.draw(&memory);
+          let texture = glium::texture::Texture2d::new(&display, draw_results.0).unwrap();
+          let _ = image_map.replace(game_screen, texture);
+          ui.needs_redraw();
 
-            widget::Tabs::new(&[(ids.tab_game, "Gameboy"), (ids.tab_debugger, "Debugger")])
-            .middle_of(ui.window)
-            .color(color::BLUE)
-            .label_color(color::WHITE)
-            .set(ids.tabs, ui);
+          // Instantiate all widgets in the GUI.
+          {
+              let ui = &mut ui.set_widgets();
 
-            widget::Image::new(game_screen).w_h(256.0f64, 256.0f64).middle_of(ids.tab_game).set(ids.game_screen, ui);
-        }
+              widget::Tabs::new(&[(ids.tab_game, "Gameboy"), (ids.tab_debugger, "Debugger")])
+              .middle_of(ui.window)
+              .color(color::BLUE)
+              .label_color(color::WHITE)
+              .set(ids.tabs, ui);
 
-        // Render the `Ui` and then display it on the screen.
-        if let Some(primitives) = ui.draw_if_changed() {
-            renderer.fill(&display, primitives, &image_map);
-            let mut target = display.draw();
-            target.clear_color(0.0, 0.0, 0.0, 1.0);
-            renderer.draw(&display, &mut target, &image_map).unwrap();
-            target.finish().unwrap();
+              widget::Image::new(game_screen).w_h(256.0f64, 256.0f64).middle_of(ids.tab_game).set(ids.game_screen, ui);
+          }
+
+          // Render the `Ui` and then display it on the screen.
+          if let Some(primitives) = ui.draw_if_changed() {
+              renderer.fill(&display, primitives, &image_map);
+              let mut target = display.draw();
+              target.clear_color(0.0, 0.0, 0.0, 1.0);
+              renderer.draw(&display, &mut target, &image_map).unwrap();
+              target.finish().unwrap();
+          }
         }
     }
 }
