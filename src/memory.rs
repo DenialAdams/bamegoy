@@ -44,7 +44,7 @@ impl Memory {
   // @Performance Read and write can use unsafe operations to index
 
   pub fn write_byte(&mut self, address: u16, value: u8) {
-    if address <= 0x7FFF {
+    if address <= 0x7fff {
       match self.cart {
         Cart::RomOnly(_) => {
           // Nothing
@@ -101,9 +101,9 @@ impl Memory {
           }
         }
       }
-    } else if address >= 0xFEA0 && address <= 0xFEFF {
+    } else if address >= 0xfea0 && address <= 0xfeff {
       0xff
-    } else if address == 0xFF0F {
+    } else if address == 0xff0f {
       0b11100000 | self.memory[0xff0f]
     } else if address >= 0xa000 || address <= 0xbfff {
       unimplemented!()
@@ -127,7 +127,7 @@ impl Memory {
 // Translates from virtual gameboy addresses to our array indexing
 fn translate(address: u16) -> usize {
   // If it's in the working memory "shadow" just index the working memory
-  if address >= 0xE000 && address <= 0xFDFF {
+  if address >= 0xe000 && address <= 0xfdff {
     address as usize - 0x2000
   } else {
     address as usize
