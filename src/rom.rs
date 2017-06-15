@@ -69,39 +69,44 @@ impl From<io::Error> for RomError {
   }
 }
 
-pub fn load_rom(memory: &mut Memory, path: &str) -> Result<(), RomError> {
+pub fn load_rom(path: &str) -> Result<Memory, RomError> {
   let mut file = File::open(path)?;
-  do_load(memory, &mut file)?;
-  let cart_val = memory.read_byte(0x0147);
+  let mut memory: [u8; 65536] = [0; 65536];
+  {
+    let buf = &mut memory[0..0x4000];
+    file.read_exact(buf)?
+  }
+  let cart_val = memory[0x0147];
   match cart_val {
     0x00 => {
       // RomOnly
       let mut buf: [u8; 16384] = [0; 16384];
       file.read(&mut buf);
-      memory.cart = Cart::RomOnly(buf);
-      Ok(())
+      let cart = Cart::RomOnly(buf);
+      Ok(Memory {
+        memory: memory,
+        cart: cart
+      })
     },
     0x01 => {
       // MBC1
       let mut buf: [u8; 2097152] = [0; 2097152];
       file.read(&mut buf);
-      memory.cart = Cart::MBC1(MBC1Data {
+      let cart = Cart::MBC1(MBC1Data {
         bank_lo: 0x01,
         bank_hi: 0x00,
         memory: buf,
         mode: MBCMode::Rom,
         ram_enabled: false
       });
-      Ok(())
+      Ok(Memory {
+        memory: memory,
+        cart: cart
+      })
     },
     _ => {
       println!("ROM given has invalid / unsupported type {:02x}!", cart_val);
       Err(RomError::Invalid)
     }
   }
-}
-
-fn do_load(memory: &mut Memory, file: &mut File) -> Result<(), io::Error> {
-  let buf = &mut memory.memory[0..0x4000];
-  file.read_exact(buf)
 }

@@ -34,13 +34,6 @@ pub struct Memory {
 }
 
 impl Memory {
-  pub fn new() -> Memory {
-    Memory {
-      memory: [0; 65536],
-      cart: { std::mem::uninitialized() }
-    }
-  }
-
   // @Performance Read and write can use unsafe operations to index
 
   pub fn write_byte(&mut self, address: u16, value: u8) {
