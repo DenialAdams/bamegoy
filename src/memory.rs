@@ -60,7 +60,7 @@ impl Memory {
             }
           } else if address <= 0x5fff {
             data.bank_hi = value & 0b0110_0000;
-          } else if address <= 0x7fff {
+          } else {
             if value & 0x01 == 0x01 {
               data.mode = MBCMode::Ram;
             } else {
