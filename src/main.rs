@@ -30,11 +30,10 @@ widget_ids!(
 );
 
 fn main() {
-    let events_loop = glutin::EventsLoop::new();
     let display = glium::glutin::WindowBuilder::new()
     .with_title(option_env!("CARGO_PKG_NAME").unwrap_or("unknown"))
     .with_dimensions(800, 600)
-    .build_glium(&events_loop).unwrap();
+    .build_glium().unwrap();
 
     let mut ui = conrod::UiBuilder::new([800.0, 600.0]).build();
 
@@ -78,7 +77,7 @@ fn main() {
             }
 
             match event {
-                glutin::Event::WindowEvent { event: glutin::WindowEvent::Closed, .. } => break 'game,
+                glutin::Event::Closed => break 'game,
                 _ => (),
             }
         }
