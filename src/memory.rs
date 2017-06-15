@@ -1,6 +1,6 @@
 use std;
 use util::LoHi;
-use rom::Cart;
+use rom::{Cart, MBCMode};
 
 /* 
 Helpful reference!
@@ -51,16 +51,26 @@ impl Memory {
         },
         Cart::MBC1(ref mut data) => {
           if address <= 0x1fff {
-            unimplemented!();
+            data.ram_enabled = value & 0x0f == 0x0a;
           } else if address <= 0x3fff {
-            unimplemented!();
+            data.bank_lo = if value == 0x00 {
+              1
+            } else {
+              value & 0x1f
+            }
           } else if address <= 0x5fff {
-            unimplemented!();
+            data.bank_hi = value & 0b0110_0000;
           } else if address <= 0x7fff {
-            unimplemented!();
+            if value & 0x01 == 0x01 {
+              data.mode = MBCMode::Ram;
+            } else {
+              data.mode = MBCMode::Rom;
+            }
           }
         }
       }
+    } else if address >= 0xa000 && address <= 0xbfff {
+      unimplemented!()
     } else {
       self.memory[translate(address)] = value;
     }
@@ -81,13 +91,22 @@ impl Memory {
           data[address as usize - 0x4000]
         },
         Cart::MBC1(ref mut data) => {
-          unimplemented!()
+          match data.mode {
+            MBCMode::Rom => {
+              data.memory[(data.bank_hi | data.bank_lo) as usize * 16384 + (address as usize - 0x4000)]
+            },
+            MBCMode::Ram => {
+              data.memory [data.bank_lo as usize * 16384 + (address as usize - 0x4000)]
+            }
+          }
         }
       }
     } else if address >= 0xFEA0 && address <= 0xFEFF {
       0xff
     } else if address == 0xFF0F {
       0b11100000 | self.memory[0xff0f]
+    } else if address >= 0xa000 || address <= 0xbfff {
+      unimplemented!()
     } else {
       self.memory[translate(address)]
     }
