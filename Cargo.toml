@@ -14,7 +14,7 @@ image = "0.13.0"
 
 [dependencies.conrod]
 features = ["winit", "glium"]
-version = "0.52.0"
+version = "0.53.0"
 
 [profile.release]
 lto = true

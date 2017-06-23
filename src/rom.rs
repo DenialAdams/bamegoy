@@ -110,3 +110,4 @@ pub fn load_rom(path: &str) -> Result<Memory, RomError> {
     }
   }
 }
+
