@@ -29,7 +29,7 @@ struct Memory {
 
 pub struct Memory {
   // This is wasteful... ROM Bank memory is duplicated. Should probably split this up TODO
-  pub memory: [u8; 65536],
+  pub memory: Box<[u8; 65536]>,
   pub cart: Cart
 }
 
@@ -63,7 +63,21 @@ impl Memory {
         }
       }
     } else if address >= 0xa000 && address <= 0xbfff {
-      unimplemented!()
+      match self.cart {
+        Cart::RomOnly(ref data) => {
+          unimplemented!()
+        },
+        Cart::MBC1(ref mut data) => {
+          match data.mode {
+            MBCMode::Rom => {
+              data.ram[address as usize - 0xa000] = value;
+            },
+            MBCMode::Ram => {
+              unimplemented!()
+            }
+          }
+        }
+      }
     } else {
       self.memory[translate(address)] = value;
     }
@@ -78,7 +92,7 @@ impl Memory {
   }
 
   pub fn read_byte(&self, address: u16) -> u8 {
-    if address <= 0x7fff && address >= 0x4000 {
+    if address >= 0x4000 && address <= 0x7fff {
       match self.cart {
         Cart::RomOnly(ref data) => {
           data[address as usize - 0x4000]
@@ -86,10 +100,10 @@ impl Memory {
         Cart::MBC1(ref data) => {
           match data.mode {
             MBCMode::Rom => {
-              data.memory[(data.bank_hi | data.bank_lo) as usize * 16384 + (address as usize - 0x4000)]
+              data.rom[(data.bank_hi | data.bank_lo) as usize * 16384 + (address as usize - 0x4000)]
             },
             MBCMode::Ram => {
-              data.memory [data.bank_lo as usize * 16384 + (address as usize - 0x4000)]
+              data.rom[data.bank_lo as usize * 16384 + (address as usize - 0x4000)]
             }
           }
         }
@@ -98,8 +112,22 @@ impl Memory {
       0xff
     } else if address == 0xff0f {
       0b11100000 | self.memory[0xff0f]
-    } else if address >= 0xa000 || address <= 0xbfff {
-      unimplemented!()
+    } else if address >= 0xa000 && address <= 0xbfff {
+      match self.cart {
+        Cart::RomOnly(ref data) => {
+          unimplemented!()
+        },
+        Cart::MBC1(ref data) => {
+          match data.mode {
+            MBCMode::Rom => {
+              data.ram[address as usize - 0xa000]
+            },
+            MBCMode::Ram => {
+              unimplemented!()
+            }
+          }
+        }
+      }
     } else {
       self.memory[translate(address)]
     }

@@ -42,7 +42,9 @@ pub enum Cart {
 pub struct MBC1Data {
   pub bank_lo: u8,
   pub bank_hi: u8,
-  pub memory: [u8; 2097152],
+  pub rom: Box<[u8; 2097152]>,
+  // This is only one bank for now TODO
+  pub ram: Box<[u8; 32768]>,
   pub mode: MBCMode,
   pub ram_enabled: bool
 }
@@ -53,7 +55,7 @@ pub enum MBCMode {
 }
 
 pub enum Cart {
-  RomOnly([u8; 16384]),
+  RomOnly(Box<[u8; 16384]>),
   MBC1(MBC1Data)
 }
 
@@ -71,7 +73,7 @@ impl From<io::Error> for RomError {
 
 pub fn load_rom(path: &str) -> Result<Memory, RomError> {
   let mut file = File::open(path)?;
-  let mut memory: [u8; 65536] = [0; 65536];
+  let mut memory = Box::new([0; 65536]);
   {
     let buf = &mut memory[0..0x4000];
     file.read_exact(buf)?
@@ -80,8 +82,8 @@ pub fn load_rom(path: &str) -> Result<Memory, RomError> {
   match cart_val {
     0x00 => {
       // RomOnly
-      let mut buf: [u8; 16384] = [0; 16384];
-      file.read(&mut buf);
+      let mut buf = Box::new([0; 16384]);
+      file.read(&mut *buf);
       let cart = Cart::RomOnly(buf);
       Ok(Memory {
         memory: memory,
@@ -90,12 +92,13 @@ pub fn load_rom(path: &str) -> Result<Memory, RomError> {
     },
     0x01 => {
       // MBC1
-      let mut buf: [u8; 2097152] = [0; 2097152];
-      file.read(&mut buf);
+      let mut buf = Box::new([0; 2097152]);
+      file.read(&mut *buf);
       let cart = Cart::MBC1(MBC1Data {
         bank_lo: 0x01,
         bank_hi: 0x00,
-        memory: buf,
+        rom: buf,
+        ram: Box::new([0; 32768]),
         mode: MBCMode::Rom,
         ram_enabled: false
       });
