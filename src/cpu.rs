@@ -31,6 +31,13 @@ enum Interrupt {
   Joypad  = 0x0060
 }
 
+enum State {
+  Normal,
+  CB,
+  Halt,
+  Stop
+}
+
 pub struct CPU {
   a: u8,
   f: Flags,
@@ -43,7 +50,8 @@ pub struct CPU {
   stack_pointer: u16,
   program_counter: u16,
   transition_enable_interrupts: bool,
-  interrupts: bool // IME
+  interrupts: bool, // IME
+  state: State
 }
 
 impl CPU {
@@ -60,11 +68,12 @@ impl CPU {
       stack_pointer: 0xfffe,
       program_counter: 0x100,
       transition_enable_interrupts: false,
-      interrupts: true
+      interrupts: true,
+      state: State::Normal
     }
   }
 
-  pub fn step(&mut self, memory: &mut Memory) -> i64 {    
+  pub fn step(&mut self, memory: &mut Memory) -> i64 {
     // Interrupts
     {
       let mut active_interrupt: Option<Interrupt> = None;
@@ -129,7 +138,7 @@ impl CPU {
       },
       0x02 => {
         // LD (BC),A
-        memory.write_byte((self.b as u16) << 8 | self.c as u16, self.a);
+        memory.write_byte(self.bc(), self.a);
         8
       },
       0x03 => {
@@ -212,6 +221,13 @@ impl CPU {
         self.f.set(CARRY, self.a & 0b1000_0000 == 0b1000_0000);
         4
       },
+      0x10 => {
+        // STOP 0
+        let _ = self.read_byte_immediate(memory);
+        self.state = State::Stop;
+        eprintln!("STUB STUB STUB STUB STOP 0");
+        4
+      }
       0x11 => {
         // LD DE,d16
         self.e = self.read_byte_immediate(memory);

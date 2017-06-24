@@ -95,7 +95,7 @@ impl PPU {
       Mode::PixelTransfer => {
         self.mode = Mode::HBlank;
         memory.memory[0xff41] = memory.memory[0xff41] & 0xFC;
-        172 // This number is WRONG, in actuality this depends on stuff
+        172 // This number is WRONG, in actuality this depends on stuff TODO
       },
       Mode::HBlank => {
         self.current_line += 1;
@@ -119,7 +119,7 @@ impl PPU {
           memory.memory[0xff40] &= !VBLANK.bits();
         }
         memory.memory[0xff44] = self.current_line;
-        456 // this should vary based on line
+        456 // this should vary based on line TODO
       }
     }
   }
