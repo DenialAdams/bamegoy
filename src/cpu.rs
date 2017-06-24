@@ -1557,6 +1557,17 @@ impl CPU {
         self.rst(0x0030, memory);
         16
       },
+      0xf8 => {
+        // LD HL,SP+r8
+        let orig = self.stack_pointer;
+        let val = self.stack_pointer + self.read_byte_immediate(memory) as u16;
+        memory.write_short(self.hl(), val);
+        self.f.remove(ZERO);
+        self.f.remove(SUBTRACT);
+        self.f.set(CARRY, val < orig);
+        self.f.set(HALF_CARRY, val & 0x0f < orig & 0x0f);
+        12
+      },
       0xf9 => {
         // LD SP,HL
         self.stack_pointer = self.hl();
