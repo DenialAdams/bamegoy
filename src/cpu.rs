@@ -1316,7 +1316,7 @@ impl CPU {
         // CB
         // TODO we could make this more granular and return 4 immediately here, then execute instructions next step
         let next_opcode = self.read_byte_immediate(memory);
-        self.cb(next_opcode)
+        self.cb(next_opcode, memory)
       },
       0xcc => {
         // CALL Z,a16
@@ -1590,7 +1590,7 @@ impl CPU {
     }
   }
 
-  fn cb(&mut self, opcode: u8) -> i64 {
+  fn cb(&mut self, opcode: u8, memory: &mut Memory) -> i64 {
     println!("cb {:02x} ({})", opcode, CB_DEBUG[opcode as usize]);
     match opcode {
       0x10 => {
@@ -1700,12 +1700,48 @@ impl CPU {
       },
       0x38 => {
         // SRL B
-        let orig = self.b;
-        self.b >>= 1;
-        self.f.set(ZERO, self.b == 0);
+        srl_r8(&mut self.b, &mut self.f);
+        8
+      },
+      0x39 => {
+        // SRL C
+        srl_r8(&mut self.c, &mut self.f);
+        8
+      },
+      0x3a => {
+        // SRL D
+        srl_r8(&mut self.d, &mut self.f);
+        8
+      },
+      0x3b => {
+        // SRL E
+        srl_r8(&mut self.e, &mut self.f);
+        8
+      },
+      0x3c => {
+        // SRL H
+        srl_r8(&mut self.h, &mut self.f);
+        8
+      },
+      0x3d => {
+        // SRL L
+        srl_r8(&mut self.l, &mut self.f);
+        8
+      },
+      0x3e => {
+        // SRL (HL)
+        let orig = memory.read_byte(self.hl());
+        let new_val = orig >> 1;
+        memory.write_byte(self.hl(), new_val);
+        self.f.set(ZERO, new_val == 0);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.set(CARRY, orig & 0b0000_0001 == 1);
+        16
+      },
+      0x3f => {
+        // SRL A
+        srl_r8(&mut self.a, &mut self.f);
         8
       },
       0x40 => {
@@ -2793,6 +2829,15 @@ fn rl_r8(register: &mut u8, f: &mut Flags) {
   f.remove(SUBTRACT);
   f.remove(HALF_CARRY);
   f.set(CARRY, *register & 0b0000_0001 == 0b0000_0001);
+}
+
+fn srl_r8(register: &mut u8, f: &mut Flags) {
+  let orig = *register;
+  *register >>= 1;
+  f.set(ZERO, *register == 0);
+  f.remove(SUBTRACT);
+  f.remove(HALF_CARRY);
+  f.set(CARRY, orig & 0b0000_0001 == 1);
 }
 
 fn swap_r8(register: &mut u8, f: &mut Flags) {
