@@ -34,8 +34,6 @@ pub struct Memory {
 }
 
 impl Memory {
-  // @Performance Read and write can use unsafe operations to index
-
   pub fn write_byte(&mut self, address: u16, value: u8) {
     if address <= 0x7fff {
       match self.cart {
@@ -78,17 +76,20 @@ impl Memory {
           }
         }
       }
+    } else if address >= 0xe000 && address <= 0xfdff {
+      self.memory[address as usize - 0x2000] = value;
+    } else if address == 0xff41 {
+      // bits 0-2 are read only
+      self.memory[0xff41] = (value & 0x1111_1000) | (self.memory[0xff41] & 0x0000_0111);
     } else {
-      self.memory[translate(address)] = value;
+      self.memory[address as usize] = value;
     }
   }
 
   pub fn write_short(&mut self, address: u16, value: u16) {
-    // This is basically un-needed because rust does this in debug mode already
-    // but I just want to remind myself
-    debug_assert!(address != 65535);
+    // TODO is this right behavior? (wrap)
     self.write_byte(address, value.lo());
-    self.write_byte(address + 1, value.hi());
+    self.write_byte(address.wrapping_add(1), value.hi());
   }
 
   pub fn read_byte(&self, address: u16) -> u8 {
@@ -108,10 +109,6 @@ impl Memory {
           }
         }
       }
-    } else if address >= 0xfea0 && address <= 0xfeff {
-      0xff
-    } else if address == 0xff0f {
-      0b11100000 | self.memory[0xff0f]
     } else if address >= 0xa000 && address <= 0xbfff {
       match self.cart {
         Cart::RomOnly(ref data) => {
@@ -128,8 +125,14 @@ impl Memory {
           }
         }
       }
+    } else if address >= 0xe000 && address <= 0xfdff {
+      self.memory[address as usize - 0x2000]
+    } else if address >= 0xfea0 && address <= 0xfeff {
+      0xff
+    } else if address == 0xff0f {
+      0b1110_0000 | self.memory[0xff0f]
     } else {
-      self.memory[translate(address)]
+      self.memory[address as usize]
     }
   }
   
@@ -138,19 +141,8 @@ impl Memory {
   }
 
   pub fn read_short(&self, address: u16) -> u16 {
-    // This is basically un-needed because rust does this in debug mode already
-    // but I just want to remind myself
-    debug_assert!(address != 65535);
-    (self.read_byte(address + 1) as u16) << 8 | self.read_byte(address) as u16
+    // TODO is this right behavior? (wrap)
+    (self.read_byte(address.wrapping_add(1)) as u16) << 8 | self.read_byte(address) as u16
   }
 }
 
-// Translates from virtual gameboy addresses to our array indexing
-fn translate(address: u16) -> usize {
-  // If it's in the working memory "shadow" just index the working memory
-  if address >= 0xe000 && address <= 0xfdff {
-    address as usize - 0x2000
-  } else {
-    address as usize
-  }
-}
