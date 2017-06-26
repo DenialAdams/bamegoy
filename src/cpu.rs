@@ -119,12 +119,23 @@ impl CPU {
         self.interrupts = true;
       }
     }
-    // Fetch
-    let opcode: u8 = memory.read_byte(self.program_counter);
+    match self.state {
+      State::Normal => {
+        let opcode = self.read_byte_immediate(memory);
+        self.exec_normal(opcode, memory)
+      },
+      State::CB => {
+        let opcode = self.read_byte_immediate(memory);
+        self.exec_cb(opcode, memory)
+      },
+      _ => {
+        unimplemented!()
+      }
+    }
+  }
+
+  fn exec_normal(&mut self, opcode: u8, memory: &mut Memory) -> i64 {
     println!("{:02x} ({}) at address {:04x}", opcode, INSTRUCTION_DEBUG[opcode as usize], self.program_counter);
-    // Increment
-    self.program_counter = self.program_counter.wrapping_add(1);
-    // Execute
     match opcode {
       0x00 => {
         // NOP
@@ -1330,9 +1341,8 @@ impl CPU {
       },
       0xcb => {
         // CB
-        // TODO we could make this more granular and return 4 immediately here, then execute instructions next step
-        let next_opcode = self.read_byte_immediate(memory);
-        self.cb(next_opcode, memory)
+        self.state = State::CB;
+        4
       },
       0xcc => {
         // CALL Z,a16
@@ -1617,143 +1627,143 @@ impl CPU {
     }
   }
 
-  fn cb(&mut self, opcode: u8, memory: &mut Memory) -> i64 {
+  fn exec_cb(&mut self, opcode: u8, memory: &mut Memory) -> i64 {
     println!("cb {:02x} ({})", opcode, CB_DEBUG[opcode as usize]);
     match opcode {
       0x10 => {
         // RL B
         rl_r8(&mut self.b, &mut self.f);
-        8
+        4
       },
       0x11 => {
         // RL C
         rl_r8(&mut self.c, &mut self.f);
-        8
+        4
       },
       0x12 => {
         // RL D
         rl_r8(&mut self.d, &mut self.f);
-        8
+        4
       },
       0x13 => {
         // RL E
         rl_r8(&mut self.d, &mut self.f);
-        8
+        4
       },
       0x14 => {
         // RL H
         rl_r8(&mut self.h, &mut self.f);
-        8
+        4
       },
       0x15 => {
         // RL L
         rl_r8(&mut self.l, &mut self.f);
-        8
+        4
       },
       0x17 => {
         // RL A
         rl_r8(&mut self.a, &mut self.f);
-        8
+        4
       },
       0x18 => {
         // RR B
         rr_r8(&mut self.b, &mut self.f);
-        8
+        4
       }
       0x19 => {
         // RR C
         rr_r8(&mut self.c, &mut self.f);
-        8
+        4
       },
       0x1a => {
         // RR D
         rr_r8(&mut self.d, &mut self.f);
-        8
+        4
       },
       0x1b => {
         // RR E
         rr_r8(&mut self.e, &mut self.f);
-        8
+        4
       },
       0x1c => {
         // RR H
         rr_r8(&mut self.h, &mut self.f);
-        8
+        4
       },
       0x1d => {
         // RR L
         rr_r8(&mut self.l, &mut self.f);
-        8
+        4
       },
       0x1f => {
         // RR A
         rr_r8(&mut self.a, &mut self.f);
-        8
+        4
       }
       0x30 => {
         // SWAP B
         swap_r8(&mut self.b, &mut self.f);
-        8
+        4
       }
       0x31 => {
         // SWAP C
         swap_r8(&mut self.c, &mut self.f);
-        8
+        4
       },
       0x32 => {
         // SWAP D
         swap_r8(&mut self.d, &mut self.f);
-        8
+        4
       },
       0x33 => {
         // SWAP E
         swap_r8(&mut self.e, &mut self.f);
-        8
+        4
       },
       0x34 => {
         // SWAP H
         swap_r8(&mut self.h, &mut self.f);
-        8
+        4
       },
       0x35 => {
         // SWAP L
         swap_r8(&mut self.l, &mut self.f);
-        8
+        4
       },
       0x37 => {
         // SWAP A
         swap_r8(&mut self.a, &mut self.f);
-        8
+        4
       },
       0x38 => {
         // SRL B
         srl_r8(&mut self.b, &mut self.f);
-        8
+        4
       },
       0x39 => {
         // SRL C
         srl_r8(&mut self.c, &mut self.f);
-        8
+        4
       },
       0x3a => {
         // SRL D
         srl_r8(&mut self.d, &mut self.f);
-        8
+        4
       },
       0x3b => {
         // SRL E
         srl_r8(&mut self.e, &mut self.f);
-        8
+        4
       },
       0x3c => {
         // SRL H
         srl_r8(&mut self.h, &mut self.f);
-        8
+        4
       },
       0x3d => {
         // SRL L
         srl_r8(&mut self.l, &mut self.f);
-        8
+        4
       },
       0x3e => {
         // SRL (HL)
@@ -1764,738 +1774,738 @@ impl CPU {
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
         self.f.set(CARRY, orig & 0b0000_0001 == 1);
-        16
+        12
       },
       0x3f => {
         // SRL A
         srl_r8(&mut self.a, &mut self.f);
-        8
+        4
       },
       0x40 => {
         // BIT 0,B
         let val = self.b;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x41 => {
         // BIT 0,C
         let val = self.c;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x42 => {
         // BIT 0,D
         let val = self.d;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x43 => {
         // BIT 0,E
         let val = self.e;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x44 => {
         // BIT 0,H
         let val = self.h;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x45 => {
         // BIT 0,L
         let val = self.l;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x47 => {
         // BIT 0,A
         let val = self.a;
         self.test_bit_at_r8(val, 0);
-        8
+        4
       },
       0x48 => {
         // BIT 1,B
         let val = self.b;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x49 => {
         // BIT 1,C
         let val = self.c;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x4a => {
         // BIT 1,D
         let val = self.d;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x4b => {
         // BIT 1,E
         let val = self.e;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x4c => {
         // BIT 1,H
         let val = self.h;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x4d => {
         // BIT 1,L
         let val = self.l;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x4f => {
         // BIT 1,A
         let val = self.a;
         self.test_bit_at_r8(val, 1);
-        8
+        4
       },
       0x50 => {
         // BIT 2,B
         let val = self.b;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x51 => {
         // BIT 2,C
         let val = self.c;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x52 => {
         // BIT 2,D
         let val = self.d;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x53 => {
         // BIT 2,E
         let val = self.e;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x54 => {
         // BIT 2,H
         let val = self.h;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x55 => {
         // BIT 2,L
         let val = self.l;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x57 => {
         // BIT 2,A
         let val = self.a;
         self.test_bit_at_r8(val, 2);
-        8
+        4
       },
       0x58 => {
         // BIT 3,B
         let val = self.b;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x59 => {
         // BIT 3,C
         let val = self.c;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x5a => {
         // BIT 3,D
         let val = self.d;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x5b => {
         // BIT 3,E
         let val = self.e;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x5c => {
         // BIT 3,H
         let val = self.h;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x5d => {
         // BIT 3,L
         let val = self.l;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x5f => {
         // BIT 3,A
         let val = self.a;
         self.test_bit_at_r8(val, 3);
-        8
+        4
       },
       0x60 => {
         // BIT 4,B
         let val = self.b;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x61 => {
         // BIT 4,C
         let val = self.c;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x62 => {
         // BIT 4,D
         let val = self.d;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x63 => {
         // BIT 4,E
         let val = self.e;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x64 => {
         // BIT 4,H
         let val = self.h;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x65 => {
         // BIT 4,L
         let val = self.l;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x67 => {
         // BIT 4,A
         let val = self.b;
         self.test_bit_at_r8(val, 4);
-        8
+        4
       },
       0x68 => {
         // BIT 5,B
         let val = self.b;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x69 => {
         // BIT 5,B
         let val = self.b;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x6a => {
         // BIT 5,C
         let val = self.c;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x6b => {
         // BIT 5,D
         let val = self.d;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x6c => {
         // BIT 5,H
         let val = self.h;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x6d => {
         // BIT 5,L
         let val = self.l;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x6f => {
         // BIT 5,A
         let val = self.a;
         self.test_bit_at_r8(val, 5);
-        8
+        4
       },
       0x70 => {
         // BIT 6,B
         let val = self.b;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x71 => {
         // BIT 6,C
         let val = self.c;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x72 => {
         // BIT 6,D
         let val = self.d;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x73 => {
         // BIT 6,E
         let val = self.e;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x74 => {
         // BIT 6,H
         let val = self.h;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x75 => {
         // BIT 6,L
         let val = self.l;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x77 => {
         // BIT 6,A
         let val = self.a;
         self.test_bit_at_r8(val, 6);
-        8
+        4
       },
       0x78 => {
         // BIT 7,B
         let val = self.b;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x79 => {
         // BIT 7,C
         let val = self.c;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x7a => {
         // BIT 7,D
         let val = self.d;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x7b => {
         // BIT 7,E
         let val = self.e;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x7c => {
         // BIT 7,H
         let val = self.h;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x7d => {
         // BIT 7,L
         let val = self.l;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x7f => {
         // BIT 7,A
         let val = self.a;
         self.test_bit_at_r8(val, 7);
-        8
+        4
       },
       0x80 => {
         // RES 0,B
         self.b &= 0b1111_1110;
-        8
+        4
       },
       0x81 => {
         // RES 0,C
         self.c &= 0b1111_1110;
-        8
+        4
       },
       0x82 => {
         // RES 0,D
         self.d &= 0b1111_1110;
-        8
+        4
       },
       0x83 => {
         // RES 0,E
         self.e &= 0b1111_1110;
-        8
+        4
       },
       0x84 => {
         // RES 0,H
         self.h &= 0b1111_1110;
-        8
+        4
       },
       0x85 => {
         // RES 0,L
         self.l &= 0b1111_1110;
-        8
+        4
       },
       0x87 => {
         // RES 0,A
         self.a &= 0b1111_1110;
-        8
+        4
       },
       0x88 => {
         // RES 1,B
         self.b &= 0b1111_1101;
-        8
+        4
       },
       0x89 => {
         // RES 1,C
         self.c &= 0b1111_1101;
-        8
+        4
       },
       0x8a => {
         // RES 1,D
         self.d &= 0b1111_1101;
-        8
+        4
       },
       0x8b => {
         // RES 1,E
         self.e &= 0b1111_1101;
-        8
+        4
       },
       0x8c => {
         // RES 1,H
         self.h &= 0b1111_1101;
-        8
+        4
       },
       0x8d => {
         // RES 1,L
         self.l &= 0b1111_1101;
-        8
+        4
       },
       0x8f => {
         // RES 1,A
         self.a &= 0b1111_1101;
-        8
+        4
       },
       0x90 => {
         // RES 2,B
         self.b &= 0b1111_1011;
-        8
+        4
       },
       0x91 => {
         // RES 2,C
         self.c &= 0b1111_1011;
-        8
+        4
       },
       0x92 => {
         // RES 2,D
         self.d &= 0b1111_1011;
-        8
+        4
       },
       0x93 => {
         // RES 2,E
         self.e &= 0b1111_1011;
-        8
+        4
       },
       0x94 => {
         // RES 2,H
         self.h &= 0b1111_1011;
-        8
+        4
       },
       0x95 => {
         // RES 2,L
         self.l &= 0b1111_1011;
-        8
+        4
       },
       0x97 => {
         // RES 2,A
         self.a &= 0b1111_1011;
-        8
+        4
       },
       0x98 => {
         // RES 3,B
         self.b &= 0b1111_0111;
-        8
+        4
       },
       0x99 => {
         // RES 3,C
         self.c &= 0b1111_0111;
-        8
+        4
       },
       0x9a => {
         // RES 3,D
         self.d &= 0b1111_0111;
-        8
+        4
       },
       0x9b => {
         // RES 3,E
         self.e &= 0b1111_0111;
-        8
+        4
       },
       0x9c => {
         // RES 3,H
         self.h &= 0b1111_0111;
-        8
+        4
       },
       0x9d => {
         // RES 3,L
         self.l &= 0b1111_0111;
-        8
+        4
       },
       0x9f => {
         // RES 3,A
         self.a &= 0b1111_0111;
-        8
+        4
       },
       0xa0 => {
         // RES 4,B
         self.b &= 0b1110_1111;
-        8
+        4
       },
       0xa1 => {
         // RES 4,C
         self.c &= 0b1110_1111;
-        8
+        4
       },
       0xa2 => {
         // RES 4,D
         self.d &= 0b1110_1111;
-        8
+        4
       },
       0xa3 => {
         // RES 4,E
         self.e &= 0b1110_1111;
-        8
+        4
       },
       0xa4 => {
         // RES 4,H
         self.h &= 0b1110_1111;
-        8
+        4
       },
       0xa5 => {
         // RES 4,L
         self.l &= 0b1110_1111;
-        8
+        4
       },
       0xa7 => {
         // RES 4,A
         self.a &= 0b1110_1111;
-        8
+        4
       },
       0xa8 => {
         // RES 5,B
         self.b &= 0b1101_1111;
-        8
+        4
       },
       0xa9 => {
         // RES 5,C
         self.b &= 0b1101_1111;
-        8
+        4
       },
       0xaa => {
         // RES 5,D
         self.d &= 0b1101_1111;
-        8
+        4
       },
       0xab => {
         // RES 5,E
         self.e &= 0b1101_1111;
-        8
+        4
       },
       0xac => {
         // RES 5,H
         self.h &= 0b1101_1111;
-        8
+        4
       },
       0xad => {
         // RES 5,L
         self.l &= 0b1101_1111;
-        8
+        4
       },
       0xaf => {
         // RES 5,A
         self.a &= 0b1101_1111;
-        8
+        4
       },
       0xb0 => {
         // RES 6,B
         self.b &= 0b1011_1111;
-        8
+        4
       },
       0xb1 => {
         // RES 6,C
         self.c &= 0b1011_1111;
-        8
+        4
       },
       0xb2 => {
         // RES 6,D
         self.d &= 0b1011_1111;
-        8
+        4
       },
       0xb3 => {
         // RES 6,E
         self.e &= 0b1011_1111;
-        8
+        4
       },
       0xb4 => {
         // RES 6,H
         self.h &= 0b1011_1111;
-        8
+        4
       },
       0xb5 => {
         // RES 6,L
         self.l &= 0b1011_1111;
-        8
+        4
       },
       0xb7 => {
         // RES 6,A
         self.a &= 0b1011_1111;
-        8
+        4
       },
       0xb8 => {
         // RES 7,B
         self.b &= 0b0111_1111;
-        8
+        4
       },
       0xb9 => {
         // RES 7,C
         self.c &= 0b0111_1111;
-        8
+        4
       },
       0xba => {
         // RES 7,D
         self.d &= 0b0111_1111;
-        8
+        4
       },
       0xbb => {
         // RES 7,E
         self.e &= 0b0111_1111;
-        8
+        4
       },
       0xbc => {
         // RES 7,H
         self.h &= 0b0111_1111;
-        8
+        4
       },
       0xbd => {
         // RES 7,L
         self.l &= 0b0111_1111;
-        8
+        4
       },
       0xbf => {
         // RES 7,A
         self.a &= 0b0111_1111;
-        8
+        4
       },
       0xc0 => {
         // SET 0,B
         self.b |= 0b0000_0001;
-        8
+        4
       },
       0xc1 => {
         // SET 0,C
         self.c |= 0b0000_0001;
-        8
+        4
       },
       0xc2 => {
         // SET 0,D
         self.d |= 0b0000_0001;
-        8
+        4
       },
       0xc3 => {
         // SET 0,E
         self.e |= 0b0000_0001;
-        8
+        4
       },
       0xc4 => {
         // SET 0,H
         self.h |= 0b0000_0001;
-        8
+        4
       },
       0xc5 => {
         // SET 0,L
         self.l |= 0b0000_0001;
-        8
+        4
       },
       0xc7 => {
         // SET 0,A
         self.a |= 0b0000_0001;
-        8
+        4
       },
       0xc8 => {
         // SET 1,B
         self.b |= 0b0000_0010;
-        8
+        4
       },
       0xc9 => {
         // SET 1,C
         self.c |= 0b0000_0010;
-        8
+        4
       },
       0xca => {
         // SET 1,D
         self.d |= 0b0000_0010;
-        8
+        4
       },
       0xcb => {
         // SET 1,E
         self.e |= 0b0000_0010;
-        8
+        4
       },
       0xcc => {
         // SET 1,H
         self.h |= 0b0000_0010;
-        8
+        4
       },
       0xcd => {
         // SET 1,L
         self.l |= 0b0000_0010;
-        8
+        4
       },
       0xcf => {
         // SET 1,A
         self.a |= 0b0000_0010;
-        8
+        4
       },
       0xd0 => {
         // SET 2,B
         self.b |= 0b0000_0100;
-        8
+        4
       },
       0xd1 => {
         // SET 2,C
         self.c |= 0b0000_0100;
-        8
+        4
       },
       0xd2 => {
         // SET 2,D
         self.d |= 0b0000_0100;
-        8
+        4
       },
       0xd3 => {
         // SET 2,E
         self.e |= 0b0000_0100;
-        8
+        4
       },
       0xd4 => {
         // SET 2,H
         self.h |= 0b0000_0100;
-        8
+        4
       },
       0xd5 => {
         // SET 2,L
         self.l |= 0b0000_0100;
-        8
+        4
       },
       0xd7 => {
         // SET 2,A
         self.a |= 0b0000_0100;
-        8
+        4
       },
       0xd8 => {
         // SET 3,B
         self.b |= 0b0000_1000;
-        8
+        4
       },
       0xd9 => {
         // SET 3,C
@@ -2505,72 +2515,72 @@ impl CPU {
       0xda => {
         // SET 3,D
         self.d |= 0b0000_1000;
-        8
+        4
       },
       0xdb => {
         // SET 3,E
         self.e |= 0b0000_1000;
-        8
+        4
       },
       0xdc => {
         // SET 3,H
         self.h |= 0b0000_1000;
-        8
+        4
       },
       0xdd => {
         // SET 3,L
         self.l |= 0b0000_1000;
-        8
+        4
       },
       0xdf => {
         // SET 3,A
         self.a |= 0b0000_1000;
-        8
+        4
       },
       0xe0 => {
         // SET 4,B
         self.b |= 0b0001_0000;
-        8
+        4
       },
       0xe1 => {
         // SET 4,C
         self.c |= 0b0001_0000;
-        8
+        4
       },
       0xe2 => {
         // SET 4,D
         self.d |= 0b0001_0000;
-        8
+        4
       },
       0xe3 => {
         // SET 4,E
         self.e |= 0b0001_0000;
-        8
+        4
       },
       0xe4 => {
         // SET 4,H
         self.h |= 0b0001_0000;
-        8
+        4
       },
       0xe5 => {
         // SET 4,L
         self.l |= 0b0001_0000;
-        8
+        4
       },
       0xe7 => {
         // SET 4,A
         self.a |= 0b0001_0000;
-        8
+        4
       },
       0xe8 => {
         // SET 5,B
         self.b |= 0b0010_0000;
-        8
+        4
       },
       0xe9 => {
         // SET 5,C
         self.c |= 0b0010_0000;
-        8
+        4
       },
       0xea => {
         // SET 5,D
@@ -2580,92 +2590,92 @@ impl CPU {
       0xeb => {
         // SET 5,E
         self.e |= 0b0010_0000;
-        8
+        4
       },
       0xec => {
         // SET 5,H
         self.h |= 0b0010_0000;
-        8
+        4
       },
       0xed => {
         // SET 5,L
         self.l |= 0b0010_0000;
-        8
+        4
       },
       0xef => {
         // SET 5,A
         self.a |= 0b0010_0000;
-        8
+        4
       },
       0xf0 => {
         // SET 6,B
         self.b |= 0b0100_0000;
-        8
+        4
       },
       0xf1 => {
         // SET 6,C
         self.c |= 0b0100_0000;
-        8
+        4
       },
       0xf2 => {
         // SET 6,D
         self.d |= 0b0100_0000;
-        8
+        4
       },
       0xf3 => {
         // SET 6,E
         self.e |= 0b0100_0000;
-        8
+        4
       },
       0xf4 => {
         // SET 6,H
         self.h |= 0b0100_0000;
-        8
+        4
       },
       0xf5 => {
         // SET 6,L
         self.l |= 0b0100_0000;
-        8
+        4
       },
       0xf7 => {
         // SET 6,A
         self.a |= 0b0100_0000;
-        8
+        4
       },
       0xf8 => {
         // SET 7,B
         self.b |= 0b1000_0000;
-        8
+        4
       },
       0xf9 => {
         // SET 7,C
         self.c |= 0b1000_0000;
-        8
+        4
       },
       0xfa => {
         // SET 7,D
         self.d |= 0b1000_0000;
-        8
+        4
       },
       0xfb => {
         // SET 7,E
         self.e |= 0b1000_0000;
-        8
+        4
       },
       0xfc => {
         // SET 7,H
         self.h |= 0b1000_0000;
-        8
+        4
       },
       0xfd => {
         // SET 7,L
         self.l |= 0b1000_0000;
-        8
+        4
       },
       0xff => {
         // SET 7,A
         self.a |= 0b1000_0000;
-        8
+        4
       },
       _ => {
         unimplemented!()
@@ -2707,19 +2717,19 @@ impl CPU {
 
   fn read_short_immediate(&mut self, memory: &Memory) -> u16 {
     let value = memory.read_short(self.program_counter);
-    self.program_counter += 2;
+    self.program_counter = self.program_counter.wrapping_add(2);
     value
   }
 
   fn read_byte_immediate(&mut self, memory: &Memory) -> u8 {
     let value = memory.read_byte(self.program_counter);
-    self.program_counter += 1;
+    self.program_counter = self.program_counter.wrapping_add(1);
     value
   }
 
   fn read_signed_byte_immediate(&mut self, memory: &Memory) -> i8 {
     let value = memory.read_signed_byte(self.program_counter);
-    self.program_counter += 1;
+    self.program_counter = self.program_counter.wrapping_add(1);
     value
   }
 
