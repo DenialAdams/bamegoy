@@ -1,6 +1,5 @@
 use memory::Memory;
 use std::fs::File;
-use std;
 use std::io;
 use std::io::Read;
 

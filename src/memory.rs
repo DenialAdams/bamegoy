@@ -1,4 +1,3 @@
-use std;
 use util::LoHi;
 use rom::{Cart, MBCMode};
 
