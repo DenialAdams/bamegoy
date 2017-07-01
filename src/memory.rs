@@ -76,6 +76,7 @@ impl Memory {
         }
       }
     } else if address >= 0xe000 && address <= 0xfdff {
+      // working memory shadow
       self.memory[address as usize - 0x2000] = value;
     } else if address == 0xff41 {
       // bits 0-2 are read only
@@ -125,6 +126,7 @@ impl Memory {
         }
       }
     } else if address >= 0xe000 && address <= 0xfdff {
+      // working memory shadow
       self.memory[address as usize - 0x2000]
     } else if address >= 0xfea0 && address <= 0xfeff {
       0xff

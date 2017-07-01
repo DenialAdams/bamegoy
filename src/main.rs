@@ -49,8 +49,41 @@ fn main() {
 
   let rom_path = std::env::args().nth(1).expect("Gameboy ROM expected as argument");
   let mut memory = rom::load_rom(&rom_path).unwrap();
-  memory.memory[0xff44] = 0; // Start at scanline 0
-  memory.memory[0xff40] &= 0x80; // Flag LCD as on
+  // BIOS would set these values
+  {
+    memory.memory[0xff05] = 0x00; // TIMA
+    memory.memory[0xff06] = 0x00; // TMA
+    memory.memory[0xff07] = 0x00; // TAC
+    memory.memory[0xff10] = 0x80; // NR10
+    memory.memory[0xff11] = 0xbf; // NR11
+    memory.memory[0xff12] = 0xf3; // NR12
+    memory.memory[0xff14] = 0xbf; // NR14
+    memory.memory[0xff16] = 0x3f; // NR21
+    memory.memory[0xff17] = 0x00; // NR22
+    memory.memory[0xff19] = 0xbf; // NR24
+    memory.memory[0xff1a] = 0x7f; // NR30
+    memory.memory[0xff1b] = 0xff; // NR31
+    memory.memory[0xff1c] = 0x9f; // NR32
+    memory.memory[0xff1e] = 0xbf; // NR33
+    memory.memory[0xff20] = 0xff; // NR41
+    memory.memory[0xff21] = 0x00; // NR42
+    memory.memory[0xff22] = 0x00; // NR43
+    memory.memory[0xff23] = 0xbf; // NR30
+    memory.memory[0xff24] = 0x77; // NR50
+    memory.memory[0xff25] = 0xf3; // NR51
+    memory.memory[0xff26] = 0xf1; // NR52 // 0xf0 on SGB @Future
+    memory.memory[0xff40] = 0x91; // LCDC
+    memory.memory[0xff42] = 0x00; // SCY
+    memory.memory[0xff43] = 0x00; // SCX
+    memory.memory[0xff44] = 0x00; // Start at scanline 0
+    memory.memory[0xff45] = 0x00; // LYC
+    memory.memory[0xff47] = 0xfc; // BGP
+    memory.memory[0xff48] = 0xff; // OBP0
+    memory.memory[0xff49] = 0xff; // OBP1
+    memory.memory[0xff4a] = 0x00; // WY
+    memory.memory[0xff4b] = 0x00; // WX
+    memory.memory[0xffff] = 0x00; // IE
+  }
 
   let mut last_time = Instant::now();
   let mut cpu_acc = 0;
