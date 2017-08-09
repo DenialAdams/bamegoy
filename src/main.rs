@@ -99,8 +99,8 @@ fn main() {
     if elapsed > Duration::from_millis(100) {
       elapsed = Duration::from_millis(100);
     };
-    cpu_acc += (elapsed.as_secs() as i64 * 1000000000) + elapsed.subsec_nanos() as i64;
-    ppu_acc += (elapsed.as_secs() as i64 * 1000000000) + elapsed.subsec_nanos() as i64;
+    cpu_acc += elapsed.subsec_nanos() as i64;
+    ppu_acc += elapsed.subsec_nanos() as i64;
     last_time = Instant::now();
 
     for event in display.poll_events() {

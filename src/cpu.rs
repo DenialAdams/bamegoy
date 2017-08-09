@@ -229,14 +229,13 @@ impl CPU {
         self.f.remove(ZERO);
         self.f.remove(SUBTRACT);
         self.f.remove(HALF_CARRY);
-        self.f.set(CARRY, self.a & 0b1000_0000 == 0b1000_0000);
+        self.f.set(CARRY, (self.a & 0b1000_0000) == 0b1000_0000);
         4
       },
       0x10 => {
         // STOP 0
         let _ = self.read_byte_immediate(memory);
         self.state = State::Stop;
-        eprintln!("STUB STUB STUB STUB STOP 0");
         4
       }
       0x11 => {
